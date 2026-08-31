@@ -1,3 +1,5 @@
+import LoginForm from "@/components/LoginForm";
+
 export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-dark via-primary to-blue-400 px-4">
@@ -10,30 +12,11 @@ export default function LoginPage() {
           <p className="text-sm text-text-secondary mt-1">Integrated Business & Employee Management</p>
         </div>
 
-        <form className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-text mb-1">Username / Email</label>
-            <input
-              type="text"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="you@aksara.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text mb-1">Password</label>
-            <input
-              type="password"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="••••••••"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-primary hover:bg-primary-dark transition-colors text-white font-medium py-2.5 text-sm"
-          >
-            Masuk ke Dashboard
-          </button>
-        </form>
+        <LoginForm />
+
+        <p className="text-xs text-text-secondary text-center mt-6">
+          Demo: direktur@aksara.com / password123
+        </p>
       </div>
     </main>
   );
