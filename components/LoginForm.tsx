@@ -16,12 +16,7 @@ export default function LoginForm() {
     setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
+    const res = await signIn("credentials", { email, password, redirect: false });
     setLoading(false);
 
     if (res?.error) {
@@ -36,23 +31,23 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-text mb-1">Username / Email</label>
+        <label className="block text-sm font-medium text-text mb-1.5">Email</label>
         <input
           type="text"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
           placeholder="you@aksara.com"
           required
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-text mb-1">Password</label>
+        <label className="block text-sm font-medium text-text mb-1.5">Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
           placeholder="••••••••"
           required
         />
@@ -63,9 +58,9 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-primary hover:bg-primary-dark transition-colors text-white font-medium py-2.5 text-sm disabled:opacity-60"
+        className="w-full rounded-xl bg-ink hover:bg-ink-soft transition-colors text-white font-medium py-2.5 text-sm disabled:opacity-60"
       >
-        {loading ? "Memproses..." : "Masuk ke Dashboard"}
+        {loading ? "Memproses..." : "Masuk"}
       </button>
     </form>
   );

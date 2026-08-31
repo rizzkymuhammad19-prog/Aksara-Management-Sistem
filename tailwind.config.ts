@@ -5,27 +5,44 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "#2563EB",
-          dark: "#1E3A8A",
-          light: "#EFF6FF",
+        ink: {
+          DEFAULT: "#0B1120",
+          soft: "#131B3A",
+          border: "#1E2947",
         },
+        primary: {
+          DEFAULT: "#3B5BFF",
+          dark: "#2540C4",
+          light: "#EEF1FF",
+        },
+        accent: {
+          DEFAULT: "#5EEAD4",
+          dark: "#0FA98A",
+        },
+        paper: "#F8FAFC",
         text: {
           DEFAULT: "#0F172A",
           secondary: "#64748B",
+          inverse: "#E2E8F0",
         },
-        success: "#16A34A",
-        warning: "#F59E0B",
-        danger: "#DC2626",
+        success: "#22C55E",
+        warning: "#F5A623",
+        danger: "#F43F5E",
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        display: ["var(--font-space-grotesk)", "sans-serif"],
+        sans: ["var(--font-inter)", "sans-serif"],
       },
       borderRadius: {
-        card: "1rem",
+        card: "1.25rem",
       },
       boxShadow: {
-        soft: "0 4px 20px -4px rgba(37, 99, 235, 0.12)",
+        soft: "0 8px 30px -8px rgba(11, 17, 32, 0.12)",
+        glow: "0 0 0 1px rgba(94, 234, 212, 0.15), 0 20px 40px -12px rgba(59, 91, 255, 0.35)",
+      },
+      backgroundImage: {
+        "ink-gradient": "radial-gradient(120% 120% at 0% 0%, #131B3A 0%, #0B1120 60%)",
+        "signature-gradient": "linear-gradient(135deg, #2540C4 0%, #3B5BFF 55%, #0FA98A 130%)",
       },
     },
   },

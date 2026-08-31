@@ -7,5 +7,13 @@ body {
 }
 
 .card {
-  @apply bg-white rounded-card shadow-soft p-6;
+  @apply bg-white rounded-card shadow-soft p-6 border border-slate-100;
+}
+
+.card-signature {
+  @apply rounded-card p-6 text-text-inverse bg-signature-gradient shadow-glow;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-space-grotesk), sans-serif;
 }

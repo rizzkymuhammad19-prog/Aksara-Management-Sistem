@@ -3,17 +3,17 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const STATUS_COLORS: Record<string, string> = {
-  Hadir: "#16A34A",
-  Terlambat: "#F59E0B",
-  Izin: "#2563EB",
+  Hadir: "#0FA98A",
+  Terlambat: "#F5A623",
+  Izin: "#3B5BFF",
   Sakit: "#64748B",
-  "Tidak Hadir": "#DC2626",
+  "Tidak Hadir": "#F43F5E",
 };
 
 export default function AttendanceDonut({ data }: { data: { name: string; value: number }[] }) {
   return (
     <div className="card">
-      <p className="font-semibold text-text mb-4">Status Kehadiran Hari Ini</p>
+      <p className="font-display font-medium text-text mb-4">Status Kehadiran Hari Ini</p>
       <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2}>

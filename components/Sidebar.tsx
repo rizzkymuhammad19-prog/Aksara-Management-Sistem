@@ -34,18 +34,18 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex w-64 flex-col bg-white border-r border-slate-100 min-h-screen sticky top-0">
+    <aside className="hidden md:flex w-64 flex-col bg-ink-gradient min-h-screen sticky top-0">
       <div className="flex items-center gap-3 px-6 py-6">
-        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">
+        <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center text-ink font-display font-bold">
           A
         </div>
         <div>
-          <p className="font-semibold text-text leading-tight">AKSARA</p>
-          <p className="text-xs text-text-secondary leading-tight">Management System</p>
+          <p className="font-display font-medium text-text-inverse leading-tight">AKSARA</p>
+          <p className="text-xs text-slate-500 leading-tight">Management System</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 space-y-0.5">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname?.startsWith(href);
           return (
@@ -54,8 +54,8 @@ export default function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
-                  ? "bg-primary-light text-primary"
-                  : "text-text-secondary hover:bg-slate-50 hover:text-text"
+                  ? "bg-white/10 text-accent"
+                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
               }`}
             >
               <Icon size={18} />
@@ -67,7 +67,7 @@ export default function Sidebar() {
 
       <button
         onClick={() => signOut({ callbackUrl: "/login" })}
-        className="flex items-center gap-3 mx-3 mb-6 px-3 py-2.5 rounded-lg text-sm font-medium text-danger hover:bg-red-50 transition-colors"
+        className="flex items-center gap-3 mx-3 mb-6 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-danger transition-colors"
       >
         <LogOut size={18} />
         Keluar

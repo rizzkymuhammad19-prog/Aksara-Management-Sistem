@@ -50,13 +50,12 @@ export default async function DashboardPage() {
     { name: "Tidak Hadir", value: Math.max(employeesCount - todayAttendance.length, 0) },
   ];
 
-  // Placeholder trend (last 6 months) — will be replaced with real grouped query once more historical data exists
   const trend = [{ period: "Bulan ini", pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-text">
+        <h1 className="font-display text-xl font-medium text-text">
           Selamat Datang, {session?.user.role === "DIRECTOR" ? "Direktur" : session?.user.name}
         </h1>
         <p className="text-sm text-text-secondary">
@@ -67,7 +66,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Pendapatan Bulan Ini" value={fmtRupiah(totalIncome)} icon={Wallet} />
         <KpiCard label="Pengeluaran Bulan Ini" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
-        <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} />
+        <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} signature />
         <KpiCard label="Total Karyawan" value={String(employeesCount)} icon={Users} />
         <KpiCard label="Kehadiran Hari Ini" value={`${hadirToday}/${employeesCount}`} icon={ClipboardCheck} />
         <KpiCard label="Design Bulan Ini" value={String(designThisMonth)} icon={Palette} />
@@ -82,7 +81,7 @@ export default async function DashboardPage() {
         <AttendanceDonut data={attendanceBreakdown} />
 
         <div className="lg:col-span-2 card">
-          <p className="font-semibold text-text mb-4">Ringkasan Divisi</p>
+          <p className="font-display font-medium text-text mb-4">Ringkasan Divisi</p>
           <div className="space-y-3">
             {divisions.map((div) => {
               const divIncome = incomes.filter((i) => i.divisionId === div.id).reduce((s, t) => s + Number(t.amount), 0);
@@ -100,7 +99,7 @@ export default async function DashboardPage() {
               );
             })}
             {divisions.length === 0 && (
-              <p className="text-sm text-text-secondary">Belum ada data divisi — jalankan seed data demo.</p>
+              <p className="text-sm text-text-secondary">Belum ada data divisi.</p>
             )}
           </div>
         </div>
