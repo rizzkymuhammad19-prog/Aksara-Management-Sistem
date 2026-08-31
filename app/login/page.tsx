@@ -1,3 +1,4 @@
+import Image from "next/image";
 import LoginForm from "@/components/LoginForm";
 
 export default function LoginPage() {
@@ -5,11 +6,8 @@ export default function LoginPage() {
     <main className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       {/* Left: dark hero panel */}
       <section className="hidden lg:flex flex-col justify-between bg-ink-gradient text-text-inverse p-12">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center text-ink font-display font-bold">
-            A
-          </div>
-          <span className="font-display font-medium tracking-tight">AKSARA</span>
+        <div className="bg-white/95 rounded-xl px-4 py-3 w-fit">
+          <Image src="/logo.png" alt="AKSARA" width={160} height={54} className="h-auto w-[160px]" />
         </div>
 
         <div>
@@ -25,11 +23,8 @@ export default function LoginPage() {
       {/* Right: login form */}
       <section className="flex items-center justify-center p-8 bg-paper">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-white font-display font-bold">
-              A
-            </div>
-            <span className="font-display font-medium">AKSARA</span>
+          <div className="mb-8 lg:hidden">
+            <Image src="/logo.png" alt="AKSARA" width={140} height={47} className="h-auto w-full max-w-[140px]" />
           </div>
 
           <h1 className="font-display text-2xl font-medium text-text mb-1">Masuk ke akun kamu</h1>

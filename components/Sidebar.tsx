@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -35,13 +36,9 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden md:flex w-64 flex-col bg-ink-gradient min-h-screen sticky top-0">
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="h-9 w-9 rounded-lg bg-accent flex items-center justify-center text-ink font-display font-bold">
-          A
-        </div>
-        <div>
-          <p className="font-display font-medium text-text-inverse leading-tight">AKSARA</p>
-          <p className="text-xs text-slate-500 leading-tight">Management System</p>
+      <div className="px-6 py-6">
+        <div className="bg-white/95 rounded-lg px-3 py-2.5 w-fit">
+          <Image src="/logo.png" alt="AKSARA" width={130} height={44} className="h-auto w-[130px]" priority />
         </div>
       </div>
 
