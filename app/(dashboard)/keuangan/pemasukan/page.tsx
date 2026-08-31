@@ -11,8 +11,6 @@ async function createIncome(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  // Fall back to any employee record if the logged-in user (e.g. Director) has none,
-  // since every transaction needs a recorded creator.
   let employeeId = session.user.employeeId;
   if (!employeeId) {
     const anyEmployee = await prisma.employee.findFirst();
@@ -20,9 +18,11 @@ async function createIncome(formData: FormData) {
   }
   if (!employeeId) throw new Error("Tidak ada data karyawan untuk mencatat transaksi ini.");
 
+  const divisionId = formData.get("divisionId") as string;
+
   await prisma.incomeTransaction.create({
     data: {
-      divisionId: formData.get("divisionId") as string,
+      divisionId,
       date: new Date(formData.get("date") as string),
       source: formData.get("source") as string,
       description: (formData.get("description") as string) || null,
@@ -32,18 +32,22 @@ async function createIncome(formData: FormData) {
     },
   });
 
-  redirect("/keuangan");
+  const division = await prisma.division.findUnique({ where: { id: divisionId } });
+  redirect(division ? `/divisi/${division.slug}` : "/keuangan");
 }
 
-export default async function TambahPemasukanPage() {
+export default async function TambahPemasukanPage({ searchParams }: { searchParams: { divisionId?: string } }) {
   const divisions = await prisma.division.findMany({ orderBy: { name: "asc" } });
   const today = new Date().toISOString().split("T")[0];
+  const backHref = searchParams.divisionId
+    ? `/divisi/${divisions.find((d) => d.id === searchParams.divisionId)?.slug ?? ""}`
+    : "/keuangan";
 
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <Link href="/keuangan" className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
-          <ChevronLeft size={16} /> Keuangan
+        <Link href={backHref} className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
+          <ChevronLeft size={16} /> Kembali
         </Link>
         <h1 className="font-display text-xl font-medium text-text">Tambah Pemasukan</h1>
       </div>
@@ -51,7 +55,7 @@ export default async function TambahPemasukanPage() {
       <form action={createIncome} className="card space-y-4">
         <div>
           <label className="block text-sm font-medium text-text mb-1.5">Divisi</label>
-          <select name="divisionId" required className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+          <select name="divisionId" required defaultValue={searchParams.divisionId || ""} className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}

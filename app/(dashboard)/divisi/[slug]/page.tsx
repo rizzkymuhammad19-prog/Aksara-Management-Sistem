@@ -1,47 +1,90 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import RevenueChart from "@/components/charts/RevenueChart";
-import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft } from "lucide-react";
-
-function startOfMonth() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
+import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus } from "lucide-react";
 
 function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
-export default async function DivisionDetailPage({ params }: { params: { slug: string } }) {
+function fmtDate(d: Date) {
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(d);
+}
+
+const TABS: { key: Period; label: string }[] = [
+  { key: "harian", label: "Harian" },
+  { key: "mingguan", label: "Mingguan" },
+  { key: "bulanan", label: "Bulanan" },
+];
+
+export default async function DivisionDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams: { period?: string };
+}) {
   const division = await prisma.division.findUnique({ where: { slug: params.slug } });
   if (!division) notFound();
 
-  const monthStart = startOfMonth();
+  const period = (["harian", "mingguan", "bulanan"].includes(searchParams.period || "") ? searchParams.period : "bulanan") as Period;
+  const { start, end, label } = getPeriodRange(period);
 
   const [employees, incomes, expenses, tasksDone, designCount] = await Promise.all([
     prisma.employee.findMany({ where: { divisionId: division.id }, include: { user: true } }),
-    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: monthStart } } }),
-    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: monthStart } } }),
+    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, orderBy: { date: "desc" } }),
+    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true }, orderBy: { date: "desc" } }),
     prisma.task.count({ where: { divisionId: division.id, status: "DONE" } }),
-    prisma.designTask.count({ where: { divisionId: division.id, date: { gte: monthStart } } }),
+    prisma.designTask.count({ where: { divisionId: division.id, date: { gte: start, lte: end } } }),
   ]);
 
   const totalIncome = incomes.reduce((s, t) => s + Number(t.amount), 0);
   const totalExpense = expenses.reduce((s, t) => s + Number(t.amount), 0);
   const netProfit = totalIncome - totalExpense;
 
-  const trend = [{ period: "Bulan ini", pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
+  const trend = [{ period: label, pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
+
+  const feed = [
+    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source, amount: Number(t.amount) })),
+    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/divisi" className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
-          <ChevronLeft size={16} /> Divisi
-        </Link>
-        <h1 className="font-display text-xl font-medium text-text">{division.name}</h1>
-        <p className="text-sm text-text-secondary">Dashboard divisi — bulan ini</p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <Link href="/divisi" className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
+            <ChevronLeft size={16} /> Divisi
+          </Link>
+          <h1 className="font-display text-xl font-medium text-text">{division.name}</h1>
+          <p className="text-sm text-text-secondary">{label}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
+            <Plus size={16} /> Pemasukan
+          </Link>
+          <Link href={`/keuangan/pengeluaran?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
+            <Plus size={16} /> Pengeluaran
+          </Link>
+        </div>
+      </div>
+
+      {/* Period tabs */}
+      <div className="inline-flex bg-slate-100 rounded-xl p-1 gap-1">
+        {TABS.map((tab) => (
+          <Link
+            key={tab.key}
+            href={`/divisi/${division.slug}?period=${tab.key}`}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              period === tab.key ? "bg-white text-text shadow-sm" : "text-text-secondary hover:text-text"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -50,10 +93,31 @@ export default async function DivisionDetailPage({ params }: { params: { slug: s
         <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} signature />
         <KpiCard label="Karyawan" value={String(employees.length)} icon={Users} />
         <KpiCard label="Task Selesai" value={String(tasksDone)} icon={ListTodo} />
-        <KpiCard label="Design Bulan Ini" value={String(designCount)} icon={Palette} />
+        <KpiCard label="Design" value={String(designCount)} icon={Palette} />
       </div>
 
       <RevenueChart data={trend} />
+
+      <div className="card">
+        <p className="font-display font-medium text-text mb-4">Transaksi — {label}</p>
+        {feed.length === 0 ? (
+          <p className="text-sm text-text-secondary text-center py-8">Belum ada transaksi pada periode ini.</p>
+        ) : (
+          <div className="space-y-2">
+            {feed.map((t) => (
+              <div key={`${t.type}-${t.id}`} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 text-sm">
+                <div>
+                  <p className="text-text">{t.label}</p>
+                  <p className="text-xs text-text-secondary">{fmtDate(t.date)}</p>
+                </div>
+                <span className={`font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
+                  {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <p className="font-display font-medium text-text mb-4">Karyawan {division.name}</p>
