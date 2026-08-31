@@ -31,24 +31,25 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex w-64 flex-col bg-ink-gradient min-h-screen sticky top-0">
+    <div className="flex flex-col bg-ink-gradient h-full w-full">
       <div className="px-6 py-6">
         <div className="bg-white/95 rounded-lg px-3 py-2.5 w-fit">
           <Image src="/logo.png" alt="AKSARA" width={130} height={44} className="h-auto w-[130px]" priority />
         </div>
       </div>
 
-      <nav className="flex-1 px-3 space-y-0.5">
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname?.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 active
                   ? "bg-white/10 text-accent"
@@ -69,6 +70,6 @@ export default function Sidebar() {
         <LogOut size={18} />
         Keluar
       </button>
-    </aside>
+    </div>
   );
 }

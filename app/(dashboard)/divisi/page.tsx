@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Building2, ArrowRight, Users, Plus } from "lucide-react";
+import { Building2, ArrowRight, Users, Plus, Trash2 } from "lucide-react";
 
 function startOfMonth() {
   const d = new Date();
@@ -11,7 +12,31 @@ function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 
-export default async function DivisiPage() {
+async function deleteDivision(formData: FormData) {
+  "use server";
+
+  const divisionId = formData.get("divisionId") as string;
+
+  const employeeCount = await prisma.employee.count({ where: { divisionId } });
+  if (employeeCount > 0) {
+    redirect("/divisi?error=has-employees");
+  }
+
+  const [incomeCount, expenseCount, taskCount, designCount] = await Promise.all([
+    prisma.incomeTransaction.count({ where: { divisionId } }),
+    prisma.expenseTransaction.count({ where: { divisionId } }),
+    prisma.task.count({ where: { divisionId } }),
+    prisma.designTask.count({ where: { divisionId } }),
+  ]);
+  if (incomeCount + expenseCount + taskCount + designCount > 0) {
+    redirect("/divisi?error=has-data");
+  }
+
+  await prisma.division.delete({ where: { id: divisionId } });
+  redirect("/divisi");
+}
+
+export default async function DivisiPage({ searchParams }: { searchParams: { error?: string } }) {
   const monthStart = startOfMonth();
 
   const divisions = await prisma.division.findMany({
@@ -22,6 +47,11 @@ export default async function DivisiPage() {
     },
     orderBy: { name: "asc" },
   });
+
+  const errorMessages: Record<string, string> = {
+    "has-employees": "Divisi ini masih punya karyawan. Pindahkan atau hapus karyawannya dulu sebelum menghapus divisi.",
+    "has-data": "Divisi ini masih punya data transaksi/task/design. Divisi dengan riwayat data tidak bisa dihapus.",
+  };
 
   return (
     <div className="space-y-6">
@@ -34,6 +64,12 @@ export default async function DivisiPage() {
           <Plus size={16} /> Tambah Divisi
         </Link>
       </div>
+
+      {searchParams.error && errorMessages[searchParams.error] && (
+        <div className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
+          {errorMessages[searchParams.error]}
+        </div>
+      )}
 
       {divisions.length === 0 ? (
         <div className="card text-center py-16">
@@ -54,30 +90,40 @@ export default async function DivisiPage() {
             const laba = income - expense;
 
             return (
-              <Link key={div.id} href={`/divisi/${div.slug}`} className="card group hover:shadow-glow transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center text-primary">
+              <div key={div.id} className="card group hover:shadow-glow transition-shadow relative">
+                <form action={deleteDivision} className="absolute top-4 right-4">
+                  <input type="hidden" name="divisionId" value={div.id} />
+                  <button title="Hapus divisi" className="p-1.5 rounded-lg hover:bg-danger/10 text-text-secondary hover:text-danger transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </form>
+
+                <Link href={`/divisi/${div.slug}`} className="block">
+                  <div className="h-10 w-10 rounded-xl bg-primary-light flex items-center justify-center text-primary mb-4">
                     <Building2 size={20} />
                   </div>
-                  <ArrowRight size={18} className="text-text-secondary group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                </div>
 
-                <p className="font-display font-medium text-text mb-1">{div.name}</p>
-                <p className="text-xs text-text-secondary flex items-center gap-1 mb-4">
-                  <Users size={12} /> {div.employees.length} karyawan
-                </p>
+                  <p className="font-display font-medium text-text mb-1 pr-8">{div.name}</p>
+                  <p className="text-xs text-text-secondary flex items-center gap-1 mb-4">
+                    <Users size={12} /> {div.employees.length} karyawan
+                  </p>
 
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-text-secondary">Pendapatan</span>
-                    <span className="text-text font-medium">{fmtRupiah(income)}</span>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Pendapatan</span>
+                      <span className="text-text font-medium">{fmtRupiah(income)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-secondary">Laba</span>
+                      <span className={`font-medium ${laba >= 0 ? "text-success" : "text-danger"}`}>{fmtRupiah(laba)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-secondary">Laba</span>
-                    <span className={`font-medium ${laba >= 0 ? "text-success" : "text-danger"}`}>{fmtRupiah(laba)}</span>
+
+                  <div className="flex items-center gap-1 text-xs text-primary mt-3 group-hover:gap-1.5 transition-all">
+                    Lihat detail <ArrowRight size={12} />
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>
