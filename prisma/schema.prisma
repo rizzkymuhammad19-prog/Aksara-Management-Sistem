@@ -1,0 +1,385 @@
+// AKSARA MANAGEMENT SYSTEM — Database Schema
+// PostgreSQL via Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================================
+// ENUMS
+// ==========================================================
+
+enum Role {
+  DIRECTOR
+  ADMIN
+  EMPLOYEE
+}
+
+enum AttendanceStatus {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  TIDAK_HADIR
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DesignStatus {
+  DRAFT
+  REVISI
+  SELESAI
+  APPROVED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum NotificationType {
+  ABSENSI
+  TASK_DEADLINE
+  TASK_OVERDUE
+  TARGET
+  LAPORAN
+  TRANSAKSI
+  TASK_ASSIGNED
+}
+
+// ==========================================================
+// CORE: DIVISIONS, USERS, EMPLOYEES
+// ==========================================================
+
+model Division {
+  id          String   @id @default(cuid())
+  name        String   @unique // AKV, Sayur Express, Ruang Berita, Komputer, Website Development
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees        Employee[]
+  incomes          IncomeTransaction[]
+  expenses         ExpenseTransaction[]
+  tasks            Task[]
+  designTasks      DesignTask[]
+
+  @@map("divisions")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  avatarUrl    String?
+  role         Role     @default(EMPLOYEE)
+  isActive     Boolean  @default(true)
+  joinedAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employee     Employee?
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Employee {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  divisionId  String
+  division    Division @relation(fields: [divisionId], references: [id])
+  position    String   // jabatan
+  isDesigner  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attendances       Attendance[]
+  assignedTasks     Task[]              @relation("AssignedEmployee")
+  designTasks       DesignTask[]
+  targets           EmployeeTarget[]
+  performances      EmployeePerformance[]
+  incomesCreated    IncomeTransaction[] @relation("IncomeCreatedBy")
+  expensesCreated   ExpenseTransaction[] @relation("ExpenseCreatedBy")
+
+  @@map("employees")
+}
+
+// ==========================================================
+// ATTENDANCE (GPS-based)
+// ==========================================================
+
+model AttendanceLocation {
+  id        String  @id @default(cuid())
+  name      String  // e.g. "Kantor Pusat"
+  latitude  Float
+  longitude Float
+  radiusM   Int     @default(100)
+  isActive  Boolean @default(true)
+
+  attendances Attendance[]
+
+  @@map("attendance_locations")
+}
+
+model Attendance {
+  id              String             @id @default(cuid())
+  employeeId      String
+  employee        Employee           @relation(fields: [employeeId], references: [id])
+  locationId      String?
+  location        AttendanceLocation? @relation(fields: [locationId], references: [id])
+  date            DateTime           @db.Date
+  checkInAt       DateTime?
+  checkInLat      Float?
+  checkInLng      Float?
+  checkInPhotoUrl String?
+  checkOutAt      DateTime?
+  checkOutLat     Float?
+  checkOutLng     Float?
+  status          AttendanceStatus   @default(TIDAK_HADIR)
+  note            String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([employeeId, date])
+  @@map("attendance")
+}
+
+// ==========================================================
+// FINANCE
+// ==========================================================
+
+model FinancialCategory {
+  id       String          @id @default(cuid())
+  name     String
+  type     TransactionType
+  isActive Boolean         @default(true)
+
+  expenseTransactions ExpenseTransaction[]
+
+  @@map("financial_categories")
+}
+
+model IncomeTransaction {
+  id              String   @id @default(cuid())
+  divisionId      String
+  division        Division @relation(fields: [divisionId], references: [id])
+  date            DateTime @db.Date
+  source          String   // sumber pemasukan
+  description     String?
+  amount          Decimal  @db.Decimal(14, 2)
+  paymentMethod   String
+  proofUrl        String?
+  createdById     String
+  createdBy       Employee @relation("IncomeCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("income_transactions")
+}
+
+model ExpenseTransaction {
+  id              String            @id @default(cuid())
+  divisionId      String
+  division        Division          @relation(fields: [divisionId], references: [id])
+  categoryId      String
+  category        FinancialCategory @relation(fields: [categoryId], references: [id])
+  date            DateTime          @db.Date
+  description     String?
+  amount          Decimal           @db.Decimal(14, 2)
+  paymentMethod   String
+  proofUrl        String?
+  createdById     String
+  createdBy       Employee          @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@map("expense_transactions")
+}
+
+// ==========================================================
+// TASKS (Kanban)
+// ==========================================================
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  divisionId  String
+  division    Division     @relation(fields: [divisionId], references: [id])
+  assigneeId  String?
+  assignee    Employee?    @relation("AssignedEmployee", fields: [assigneeId], references: [id])
+  deadline    DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  comments TaskComment[]
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("task_comments")
+}
+
+// ==========================================================
+// DESIGN TRACKER
+// ==========================================================
+
+model DesignTask {
+  id          String       @id @default(cuid())
+  divisionId  String
+  division    Division     @relation(fields: [divisionId], references: [id])
+  designerId  String
+  designer    Employee     @relation(fields: [designerId], references: [id])
+  date        DateTime     @db.Date
+  projectName String
+  designType  String       // Poster, Feed IG, Story, Banner, Logo, dst
+  client      String?
+  description String?
+  status      DesignStatus @default(DRAFT)
+  note        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  files DesignFile[]
+
+  @@map("design_tasks")
+}
+
+model DesignFile {
+  id           String     @id @default(cuid())
+  designTaskId String
+  designTask   DesignTask @relation(fields: [designTaskId], references: [id], onDelete: Cascade)
+  fileUrl      String?
+  linkUrl      String?
+  createdAt    DateTime   @default(now())
+
+  @@map("design_files")
+}
+
+// ==========================================================
+// TARGETS & PERFORMANCE
+// ==========================================================
+
+model EmployeeTarget {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  jobType       String   // e.g. "Design", "Project"
+  targetValue   Int
+  actualValue   Int      @default(0)
+  periodStart   DateTime @db.Date
+  periodEnd     DateTime @db.Date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("employee_targets")
+}
+
+model EmployeePerformance {
+  id                 String   @id @default(cuid())
+  employeeId         String
+  employee           Employee @relation(fields: [employeeId], references: [id])
+  periodStart        DateTime @db.Date
+  periodEnd          DateTime @db.Date
+  attendanceScore    Float    @default(0)
+  productivityScore  Float    @default(0)
+  taskCompletion     Float    @default(0)
+  designOutput       Float    @default(0)
+  overallScore       Float    @default(0)
+  createdAt          DateTime @default(now())
+
+  @@map("employee_performance")
+}
+
+// ==========================================================
+// NOTIFICATIONS, REPORTS, SETTINGS, AUDIT LOG
+// ==========================================================
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  @@map("notifications")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // daily, weekly, monthly, executive
+  divisionId  String?
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+  fileUrl     String?
+  generatedBy String
+  createdAt   DateTime @default(now())
+
+  @@map("reports")
+}
+
+model Setting {
+  id            String  @id @default(cuid())
+  companyName   String  @default("Aksara")
+  logoUrl       String?
+  officeAddress String?
+  officeLat     Float?
+  officeLng     Float?
+  radiusM       Int     @default(100)
+  clockInTime   String  @default("08:00")
+  clockOutTime  String  @default("17:00")
+  workDays      String  @default("Mon,Tue,Wed,Thu,Fri")
+
+  @@map("settings")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_log")
+}
