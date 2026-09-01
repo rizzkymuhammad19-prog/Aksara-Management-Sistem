@@ -133,7 +133,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
                     <td className="py-2.5">{t.label}</td>
                     <td className="py-2.5 text-text-secondary">{t.desc || "—"}</td>
                     <td className="py-2.5 text-text-secondary">{t.inputBy}</td>
-                    <td className={`py-2.5 text-right font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
+                    <td className={`py-2.5 text-right font-mono font-semibold ${t.type === "income" ? "text-gain" : "text-loss"}`}>
                       {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
                     </td>
                   </tr>

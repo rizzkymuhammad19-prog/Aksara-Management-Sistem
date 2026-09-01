@@ -133,7 +133,7 @@ export default async function DivisionDetailPage({
                   <p className="text-xs text-text-secondary">{fmtDate(t.date)}</p>
                 </div>
                 {t.type === "expense" && (
-                  <span className="font-medium text-danger">− {fmtRupiah(t.amount)}</span>
+                  <span className="font-mono font-semibold text-loss">− {fmtRupiah(t.amount)}</span>
                 )}
               </div>
             ))}

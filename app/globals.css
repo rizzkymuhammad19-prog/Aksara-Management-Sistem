@@ -14,6 +14,12 @@ h1, h2, h3, .font-display {
   font-family: var(--font-space-grotesk), sans-serif;
 }
 
+/* Tabular numbers everywhere money/counts are shown — keeps digits aligned, trading-app style */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
 /* ==========================================================
    CARDS — soft shadow + colored top accent that reveals on hover
    ========================================================== */
@@ -58,7 +64,7 @@ h1, h2, h3, .font-display {
 }
 
 /* ==========================================================
-   BUTTONS & LINKS — smooth, tactile, with lift on primary actions
+   BUTTONS & LINKS
    ========================================================== */
 
 button,
@@ -72,7 +78,6 @@ a:active {
   transform: scale(0.98);
 }
 
-/* Primary action buttons/links (the ones using bg-ink) get a soft glow + lift */
 a[class*="bg-ink"]:not([class*="bg-ink-gradient"]),
 button[class*="bg-ink"]:not([class*="bg-ink-gradient"]) {
   box-shadow: 0 4px 14px -4px rgba(59, 99, 255, 0.35);
@@ -90,7 +95,7 @@ button[class*="bg-ink"]:not([class*="bg-ink-gradient"]):active {
 }
 
 /* ==========================================================
-   FORM INPUTS — softer, glowing focus state instead of a hard ring
+   FORM INPUTS
    ========================================================== */
 
 input,
@@ -112,11 +117,14 @@ textarea:focus {
 }
 
 /* ==========================================================
-   TABLES — gentle row hover + breathing room
+   TABLES — dense, tabular numbers for money columns
    ========================================================== */
 
 .card table thead th {
   padding-bottom: 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .card table tbody tr {
@@ -130,6 +138,13 @@ textarea:focus {
 .card table tbody td {
   padding-top: 0.7rem;
   padding-bottom: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gain/loss text — vivid green/red like a trading ticker, used for +/- amounts */
+.text-success,
+.text-gain {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================

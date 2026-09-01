@@ -19,6 +19,14 @@ const config: Config = {
           DEFAULT: "#60A5FA",
           dark: "#2563EB",
         },
+        gain: {
+          DEFAULT: "#00C896",
+          light: "#E6FBF5",
+        },
+        loss: {
+          DEFAULT: "#FF3B5C",
+          light: "#FFEEF1",
+        },
         paper: "#F8FAFC",
         text: {
           DEFAULT: "#0F172A",
@@ -32,6 +40,7 @@ const config: Config = {
       fontFamily: {
         display: ["var(--font-space-grotesk)", "sans-serif"],
         sans: ["var(--font-inter)", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       borderRadius: {
         card: "1.25rem",
