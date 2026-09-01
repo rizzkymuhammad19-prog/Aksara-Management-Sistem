@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
@@ -31,13 +33,18 @@ export default async function DivisionDetailPage({
   const division = await prisma.division.findUnique({ where: { slug: params.slug } });
   if (!division) notFound();
 
+  const session = await getServerSession(authOptions);
+  const isDirector = session?.user.role === "DIRECTOR";
+
   const period = (["harian", "mingguan", "bulanan"].includes(searchParams.period || "") ? searchParams.period : "bulanan") as Period;
   const { start, end, label } = getPeriodRange(period);
 
   const [employees, incomes, expenses, tasksDone, designCount] = await Promise.all([
     prisma.employee.findMany({ where: { divisionId: division.id }, include: { user: true } }),
-    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { createdBy: { include: { user: true } } }, orderBy: { date: "desc" } }),
-    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true, createdBy: { include: { user: true } } }, orderBy: { date: "desc" } }),
+    isDirector
+      ? prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, orderBy: { date: "desc" } })
+      : Promise.resolve([]),
+    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true }, orderBy: { date: "desc" } }),
     prisma.task.count({ where: { divisionId: division.id, status: "DONE" } }),
     prisma.designTask.count({ where: { divisionId: division.id, date: { gte: start, lte: end } } }),
   ]);
@@ -48,10 +55,14 @@ export default async function DivisionDetailPage({
 
   const trend = [{ period: label, pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
 
-  const feed = [
-    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
-    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const feed = isDirector
+    ? [
+        ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source })),
+        ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) })),
+      ]
+    : expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) }));
+
+  const sortedFeed = [...feed].sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="space-y-6">
@@ -64,17 +75,18 @@ export default async function DivisionDetailPage({
           <p className="text-sm text-text-secondary">{label}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
-            <Plus size={16} /> Pemasukan
-          </Link>
+          {isDirector && (
+            <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
+              <Plus size={16} /> Pemasukan
+            </Link>
+          )}
           <Link href={`/keuangan/pengeluaran?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
             <Plus size={16} /> Pengeluaran
           </Link>
-          <ExportButtons divisionId={division.id} period={period} />
+          {isDirector && <ExportButtons divisionId={division.id} period={period} />}
         </div>
       </div>
 
-      {/* Period tabs */}
       <div className="inline-flex bg-slate-100 rounded-xl p-1 gap-1">
         {TABS.map((tab) => (
           <Link
@@ -90,31 +102,31 @@ export default async function DivisionDetailPage({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Pendapatan" value={fmtRupiah(totalIncome)} icon={Wallet} />
+        {isDirector && <KpiCard label="Pendapatan" value={fmtRupiah(totalIncome)} icon={Wallet} />}
         <KpiCard label="Pengeluaran" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
-        <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} signature />
+        {isDirector && <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} signature />}
         <KpiCard label="Karyawan" value={String(employees.length)} icon={Users} />
         <KpiCard label="Task Selesai" value={String(tasksDone)} icon={ListTodo} />
         <KpiCard label="Design" value={String(designCount)} icon={Palette} />
       </div>
 
-      <RevenueChart data={trend} />
+      {isDirector && <RevenueChart data={trend} />}
 
       <div className="card">
-        <p className="font-display font-medium text-text mb-4">Transaksi — {label}</p>
-        {feed.length === 0 ? (
-          <p className="text-sm text-text-secondary text-center py-8">Belum ada transaksi pada periode ini.</p>
+        <p className="font-display font-medium text-text mb-4">{isDirector ? `Transaksi — ${label}` : `Pengeluaran — ${label}`}</p>
+        {sortedFeed.length === 0 ? (
+          <p className="text-sm text-text-secondary text-center py-8">Belum ada data pada periode ini.</p>
         ) : (
           <div className="space-y-2">
-            {feed.map((t) => (
+            {sortedFeed.map((t: any) => (
               <div key={`${t.type}-${t.id}`} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 text-sm">
                 <div>
                   <p className="text-text">{t.label}</p>
-                  <p className="text-xs text-text-secondary">{fmtDate(t.date)} · diinput oleh {t.inputBy}</p>
+                  <p className="text-xs text-text-secondary">{fmtDate(t.date)}</p>
                 </div>
-                <span className={`font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
-                  {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
-                </span>
+                {t.type === "expense" && (
+                  <span className="font-medium text-danger">− {fmtRupiah(t.amount)}</span>
+                )}
               </div>
             ))}
           </div>

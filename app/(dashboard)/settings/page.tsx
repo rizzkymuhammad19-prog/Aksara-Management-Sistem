@@ -16,11 +16,8 @@ const DAYS = [
 
 async function updateSettings(formData: FormData) {
   "use server";
-
   const session = await getServerSession(authOptions);
-  if (session?.user.role !== "DIRECTOR") {
-    redirect("/settings?error=forbidden");
-  }
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
 
   const selectedDays = DAYS.filter((d) => formData.get(`day_${d.key}`) === "on").map((d) => d.key);
 
@@ -33,6 +30,7 @@ async function updateSettings(formData: FormData) {
       radiusM: Number(formData.get("radiusM")),
       officeAddress: (formData.get("officeAddress") as string) || null,
       workDays: selectedDays.join(","),
+      openingBalance: Number(formData.get("openingBalance") || 0),
     },
     create: {
       id: "default",
@@ -42,6 +40,7 @@ async function updateSettings(formData: FormData) {
       radiusM: Number(formData.get("radiusM")),
       officeAddress: (formData.get("officeAddress") as string) || null,
       workDays: selectedDays.join(","),
+      openingBalance: Number(formData.get("openingBalance") || 0),
     },
   });
 
@@ -50,30 +49,52 @@ async function updateSettings(formData: FormData) {
 
 async function addHoliday(formData: FormData) {
   "use server";
-
   const session = await getServerSession(authOptions);
-  if (session?.user.role !== "DIRECTOR") {
-    redirect("/settings?error=forbidden");
-  }
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
 
   await prisma.holiday.create({
-    data: {
-      date: new Date(formData.get("date") as string),
-      description: formData.get("description") as string,
-    },
+    data: { date: new Date(formData.get("date") as string), description: formData.get("description") as string },
   });
   redirect("/settings");
 }
 
 async function deleteHoliday(formData: FormData) {
   "use server";
-
   const session = await getServerSession(authOptions);
-  if (session?.user.role !== "DIRECTOR") {
-    redirect("/settings?error=forbidden");
-  }
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
 
   await prisma.holiday.delete({ where: { id: formData.get("id") as string } });
+  redirect("/settings");
+}
+
+async function addCategory(formData: FormData) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
+
+  const name = (formData.get("name") as string).trim();
+  const type = formData.get("type") as string;
+  const existing = await prisma.financialCategory.findFirst({ where: { name, type: type as any } });
+  if (!existing) {
+    await prisma.financialCategory.create({ data: { name, type: type as any } });
+  }
+  redirect("/settings");
+}
+
+async function deleteCategory(formData: FormData) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
+
+  const id = formData.get("id") as string;
+  const type = formData.get("type") as string;
+
+  if (type === "EXPENSE") {
+    const usageCount = await prisma.expenseTransaction.count({ where: { categoryId: id } });
+    if (usageCount > 0) redirect("/settings?error=category-in-use");
+  }
+
+  await prisma.financialCategory.delete({ where: { id } });
   redirect("/settings");
 }
 
@@ -86,7 +107,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
   const isDirector = session.user.role === "DIRECTOR";
   const settings = await prisma.setting.findUnique({ where: { id: "default" } });
   const holidays = await prisma.holiday.findMany({ orderBy: { date: "asc" } });
+  const expenseCategories = await prisma.financialCategory.findMany({ where: { type: "EXPENSE" }, orderBy: { name: "asc" } });
+  const incomeCategories = await prisma.financialCategory.findMany({ where: { type: "INCOME" }, orderBy: { name: "asc" } });
   const activeDays = (settings?.workDays || "Mon,Tue,Wed,Thu,Fri").split(",");
+
+  const errorMessages: Record<string, string> = {
+    forbidden: "Kamu tidak punya izin untuk mengubah pengaturan ini.",
+    "category-in-use": "Kategori ini sudah dipakai di transaksi, tidak bisa dihapus.",
+  };
 
   return (
     <div className="max-w-lg space-y-6">
@@ -95,15 +123,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
           <SettingsIcon size={20} /> Settings
         </h1>
         <p className="text-sm text-text-secondary">
-          {isDirector
-            ? "Jam kerja & hari kerja di sini otomatis dipakai modul Absensi."
-            : "Hanya Direktur yang bisa mengubah pengaturan ini."}
+          {isDirector ? "Jam kerja & hari kerja di sini otomatis dipakai modul Absensi." : "Hanya Direktur yang bisa mengubah pengaturan ini."}
         </p>
       </div>
 
-      {searchParams.error === "forbidden" && (
+      {searchParams.error && errorMessages[searchParams.error] && (
         <div className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger flex items-center gap-2">
-          <Lock size={14} /> Kamu tidak punya izin untuk mengubah pengaturan ini.
+          <Lock size={14} /> {errorMessages[searchParams.error]}
         </div>
       )}
 
@@ -152,9 +178,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
             <label className="block text-sm font-medium text-text mb-1.5">Radius Absensi (meter)</label>
             <input type="number" name="radiusM" defaultValue={settings?.radiusM || 100} min="10" required className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             <p className="text-xs text-text-secondary mt-1">
-              {settings?.officeLat
-                ? "Titik kantor sudah diatur. Untuk ubah titik lokasi, buka halaman Absensi."
-                : "Titik lokasi kantor belum diatur — atur dari halaman Absensi."}
+              {settings?.officeLat ? "Titik kantor sudah diatur. Untuk ubah titik lokasi, buka halaman Absensi." : "Titik lokasi kantor belum diatur — atur dari halaman Absensi."}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3.5">
+            <label className="block text-sm font-medium text-text mb-1.5">Saldo Awal / Dana yang Sudah Ada (Rp)</label>
+            <input type="number" name="openingBalance" defaultValue={Number(settings?.openingBalance || 0)} min="0" step="1" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
+            <p className="text-xs text-text-secondary mt-1.5">
+              Dana kas yang sudah ada sebelum mulai pakai sistem ini. Akan otomatis ditambahkan ke perhitungan Saldo Kas total.
             </p>
           </div>
 
@@ -179,6 +211,68 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
           <div className="flex justify-between">
             <span className="text-text-secondary">Hari Kerja</span>
             <span className="text-text font-medium">{activeDays.map((d) => DAY_LABEL[d]).join(", ")}</span>
+          </div>
+        </div>
+      )}
+
+      {isDirector && (
+        <div className="card">
+          <p className="font-display font-medium text-text mb-1">Kategori Pendapatan</p>
+          <p className="text-xs text-text-secondary mb-4">Kategori yang muncul di form Tambah Pemasukan. Hanya Direktur yang bisa mengelola.</p>
+
+          <form action={addCategory} className="flex gap-2 mb-4">
+            <input type="hidden" name="type" value="INCOME" />
+            <input type="text" name="name" required placeholder="Nama kategori baru" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <button type="submit" className="px-4 py-2 rounded-xl bg-ink text-white text-sm font-medium hover:bg-ink-soft transition-colors">
+              Tambah
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-2">
+            {incomeCategories.map((c) => (
+              <span key={c.id} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-slate-100 text-text">
+                {c.name}
+                <form action={deleteCategory}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="type" value="INCOME" />
+                  <button className="text-text-secondary hover:text-danger">
+                    <Trash2 size={11} />
+                  </button>
+                </form>
+              </span>
+            ))}
+            {incomeCategories.length === 0 && <p className="text-sm text-text-secondary">Belum ada kategori.</p>}
+          </div>
+        </div>
+      )}
+
+      {isDirector && (
+        <div className="card">
+          <p className="font-display font-medium text-text mb-1">Kategori Pengeluaran</p>
+          <p className="text-xs text-text-secondary mb-4">Kategori yang muncul di form Tambah Pengeluaran.</p>
+
+          <form action={addCategory} className="flex gap-2 mb-4">
+            <input type="hidden" name="type" value="EXPENSE" />
+            <input type="text" name="name" required placeholder="Nama kategori baru" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <button type="submit" className="px-4 py-2 rounded-xl bg-ink text-white text-sm font-medium hover:bg-ink-soft transition-colors">
+              Tambah
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-2">
+            {expenseCategories.map((c) => (
+              <span key={c.id} className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-slate-100 text-text">
+                {c.name}
+                <form action={deleteCategory}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="type" value="EXPENSE" />
+                  <button className="text-text-secondary hover:text-danger">
+                    <Trash2 size={11} />
+                  </button>
+                </form>
+              </span>
+            ))}
+            {expenseCategories.length === 0 && <p className="text-sm text-text-secondary">Belum ada kategori.</p>}
           </div>
         </div>
       )}

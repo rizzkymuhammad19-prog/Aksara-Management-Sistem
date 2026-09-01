@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import ExportButtons from "@/components/ExportButtons";
 import DivisionFilter from "@/components/DivisionFilter";
-import { Wallet, TrendingDown, TrendingUp, ClipboardCheck, Palette, Users } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, ClipboardCheck, Palette, Users, Lock } from "lucide-react";
 
 function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -17,6 +19,23 @@ const TABS: { key: Period; label: string }[] = [
 ];
 
 export default async function LaporanPage({ searchParams }: { searchParams: { period?: string; divisionId?: string } }) {
+  const session = await getServerSession(authOptions);
+  const isDirector = session?.user.role === "DIRECTOR";
+
+  if (!isDirector) {
+    return (
+      <div className="max-w-md mx-auto mt-12">
+        <div className="card text-center py-12">
+          <div className="h-12 w-12 rounded-xl bg-primary-light flex items-center justify-center text-primary mx-auto mb-4">
+            <Lock size={22} />
+          </div>
+          <p className="text-text font-medium mb-1">Halaman ini khusus Direktur</p>
+          <p className="text-sm text-text-secondary">Laporan berisi data pendapatan dan laba-rugi perusahaan.</p>
+        </div>
+      </div>
+    );
+  }
+
   const period = (["harian", "mingguan", "bulanan"].includes(searchParams.period || "") ? searchParams.period : "bulanan") as Period;
   const { start, end, label } = getPeriodRange(period);
   const divisionId = searchParams.divisionId || undefined;
@@ -28,10 +47,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: { pe
     prisma.incomeTransaction.findMany({ where: { date: { gte: start, lte: end }, ...(divisionId ? { divisionId } : {}) } }),
     prisma.expenseTransaction.findMany({ where: { date: { gte: start, lte: end }, ...(divisionId ? { divisionId } : {}) } }),
     prisma.attendance.findMany({
-      where: {
-        date: { gte: start, lte: end },
-        ...(divisionId ? { employee: { divisionId } } : {}),
-      },
+      where: { date: { gte: start, lte: end }, ...(divisionId ? { employee: { divisionId } } : {}) },
     }),
     prisma.employee.count({ where: divisionId ? { divisionId } : {} }),
     prisma.designTask.count({ where: { date: { gte: start, lte: end }, ...(divisionId ? { divisionId } : {}) } }),
@@ -45,7 +61,6 @@ export default async function LaporanPage({ searchParams }: { searchParams: { pe
   const presentCount = attendanceRecords.filter((a) => a.status === "HADIR" || a.status === "TERLAMBAT").length;
   const attendanceRate = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 0;
 
-  // Division ranking only makes sense when viewing "Semua Divisi"
   let divisionRanking: { name: string; laba: number }[] = [];
   if (!divisionId) {
     const [allIncomes, allExpenses] = await Promise.all([

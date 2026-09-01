@@ -394,16 +394,17 @@ model Report {
 }
 
 model Setting {
-  id            String  @id @default(cuid())
-  companyName   String  @default("Aksara")
-  logoUrl       String?
-  officeAddress String?
-  officeLat     Float?
-  officeLng     Float?
-  radiusM       Int     @default(100)
-  clockInTime   String  @default("08:00")
-  clockOutTime  String  @default("17:00")
-  workDays      String  @default("Mon,Tue,Wed,Thu,Fri")
+  id             String  @id @default(cuid())
+  companyName    String  @default("Aksara")
+  logoUrl        String?
+  officeAddress  String?
+  officeLat      Float?
+  officeLng      Float?
+  radiusM        Int     @default(100)
+  clockInTime    String  @default("08:00")
+  clockOutTime   String  @default("17:00")
+  workDays       String  @default("Mon,Tue,Wed,Thu,Fri")
+  openingBalance Decimal @default(0) @db.Decimal(14, 2)
 
   @@map("settings")
 }

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Building2, ArrowRight, Users, Plus, Trash2 } from "lucide-react";
 
@@ -37,13 +39,15 @@ async function deleteDivision(formData: FormData) {
 }
 
 export default async function DivisiPage({ searchParams }: { searchParams: { error?: string } }) {
+  const session = await getServerSession(authOptions);
+  const isDirector = session?.user.role === "DIRECTOR";
   const monthStart = startOfMonth();
 
   const divisions = await prisma.division.findMany({
     include: {
       employees: true,
-      incomes: { where: { date: { gte: monthStart } } },
-      expenses: { where: { date: { gte: monthStart } } },
+      incomes: isDirector ? { where: { date: { gte: monthStart } } } : false,
+      expenses: isDirector ? { where: { date: { gte: monthStart } } } : false,
     },
     orderBy: { name: "asc" },
   });
@@ -84,9 +88,9 @@ export default async function DivisiPage({ searchParams }: { searchParams: { err
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {divisions.map((div) => {
-            const income = div.incomes.reduce((s, t) => s + Number(t.amount), 0);
-            const expense = div.expenses.reduce((s, t) => s + Number(t.amount), 0);
+          {divisions.map((div: any) => {
+            const income = isDirector ? div.incomes.reduce((s: number, t: any) => s + Number(t.amount), 0) : 0;
+            const expense = isDirector ? div.expenses.reduce((s: number, t: any) => s + Number(t.amount), 0) : 0;
             const laba = income - expense;
 
             return (
@@ -108,20 +112,22 @@ export default async function DivisiPage({ searchParams }: { searchParams: { err
                     <Users size={12} /> {div.employees.length} karyawan
                   </p>
 
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Pendapatan</span>
-                      <span className="text-text font-medium">{fmtRupiah(income)}</span>
+                  {isDirector ? (
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">Pendapatan</span>
+                        <span className="text-text font-medium">{fmtRupiah(income)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-secondary">Laba</span>
+                        <span className={`font-medium ${laba >= 0 ? "text-success" : "text-danger"}`}>{fmtRupiah(laba)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Laba</span>
-                      <span className={`font-medium ${laba >= 0 ? "text-success" : "text-danger"}`}>{fmtRupiah(laba)}</span>
+                  ) : (
+                    <div className="flex items-center gap-1 text-xs text-primary group-hover:gap-1.5 transition-all">
+                      Lihat detail <ArrowRight size={12} />
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-xs text-primary mt-3 group-hover:gap-1.5 transition-all">
-                    Lihat detail <ArrowRight size={12} />
-                  </div>
+                  )}
                 </Link>
               </div>
             );
