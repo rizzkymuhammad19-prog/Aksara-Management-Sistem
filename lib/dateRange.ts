@@ -1,4 +1,4 @@
-export type Period = "harian" | "mingguan" | "bulanan";
+export type Period = "harian" | "mingguan" | "bulanan" | "tahunan";
 
 export function getPeriodRange(period: Period): { start: Date; end: Date; label: string } {
   const now = new Date();
@@ -15,6 +15,12 @@ export function getPeriodRange(period: Period): { start: Date; end: Date; label:
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
     const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59);
     return { start, end, label: "Minggu ini" };
+  }
+
+  if (period === "tahunan") {
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    return { start, end, label: `Tahun ${now.getFullYear()}` };
   }
 
   // bulanan (default)

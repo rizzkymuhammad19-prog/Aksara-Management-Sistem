@@ -16,6 +16,7 @@ const TABS: { key: Period; label: string }[] = [
   { key: "harian", label: "Harian" },
   { key: "mingguan", label: "Mingguan" },
   { key: "bulanan", label: "Bulanan" },
+  { key: "tahunan", label: "Tahunan" },
 ];
 
 export default async function LaporanPage({ searchParams }: { searchParams: { period?: string; divisionId?: string } }) {
@@ -36,7 +37,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: { pe
     );
   }
 
-  const period = (["harian", "mingguan", "bulanan"].includes(searchParams.period || "") ? searchParams.period : "bulanan") as Period;
+  const period = (["harian", "mingguan", "bulanan", "tahunan"].includes(searchParams.period || "") ? searchParams.period : "bulanan") as Period;
   const { start, end, label } = getPeriodRange(period);
   const divisionId = searchParams.divisionId || undefined;
 

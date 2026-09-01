@@ -5,7 +5,7 @@ import { getPeriodRange, Period } from "@/lib/dateRange";
 export async function GET(req: NextRequest) {
   const divisionId = req.nextUrl.searchParams.get("divisionId") || undefined;
   const periodParam = req.nextUrl.searchParams.get("period") || "bulanan";
-  const period = (["harian", "mingguan", "bulanan"].includes(periodParam) ? periodParam : "bulanan") as Period;
+  const period = (["harian", "mingguan", "bulanan", "tahunan"].includes(periodParam) ? periodParam : "bulanan") as Period;
   const { start, end, label } = getPeriodRange(period);
 
   const [incomes, expenses, division] = await Promise.all([
