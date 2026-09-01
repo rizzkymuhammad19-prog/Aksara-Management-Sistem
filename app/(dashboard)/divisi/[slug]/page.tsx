@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import RevenueChart from "@/components/charts/RevenueChart";
+import ExportButtons from "@/components/ExportButtons";
 import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus } from "lucide-react";
 
 function fmtRupiah(n: number) {
@@ -62,13 +63,14 @@ export default async function DivisionDetailPage({
           <h1 className="font-display text-xl font-medium text-text">{division.name}</h1>
           <p className="text-sm text-text-secondary">{label}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
             <Plus size={16} /> Pemasukan
           </Link>
           <Link href={`/keuangan/pengeluaran?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
             <Plus size={16} /> Pengeluaran
           </Link>
+          <ExportButtons divisionId={division.id} period={period} />
         </div>
       </div>
 

@@ -17,9 +17,9 @@ export default function RevenueChart({
           <YAxis tick={{ fontSize: 12, fill: "#64748B" }} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="pendapatan" stroke="#3B5BFF" strokeWidth={2} name="Pendapatan" />
+          <Line type="monotone" dataKey="pendapatan" stroke="#3B63FF" strokeWidth={2} name="Pendapatan" />
           <Line type="monotone" dataKey="pengeluaran" stroke="#F43F5E" strokeWidth={2} name="Pengeluaran" />
-          <Line type="monotone" dataKey="laba" stroke="#0FA98A" strokeWidth={2} name="Laba" />
+          <Line type="monotone" dataKey="laba" stroke="#1E3FA8" strokeWidth={2} name="Laba" />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -6,18 +6,18 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#0B1120",
-          soft: "#131B3A",
-          border: "#1E2947",
+          DEFAULT: "#0B1230",
+          soft: "#152350",
+          border: "#1E2E5C",
         },
         primary: {
-          DEFAULT: "#3B5BFF",
-          dark: "#2540C4",
-          light: "#EEF1FF",
+          DEFAULT: "#3B63FF",
+          dark: "#1E3FA8",
+          light: "#EEF2FF",
         },
         accent: {
-          DEFAULT: "#5EEAD4",
-          dark: "#0FA98A",
+          DEFAULT: "#60A5FA",
+          dark: "#2563EB",
         },
         paper: "#F8FAFC",
         text: {
@@ -37,12 +37,12 @@ const config: Config = {
         card: "1.25rem",
       },
       boxShadow: {
-        soft: "0 8px 30px -8px rgba(11, 17, 32, 0.12)",
-        glow: "0 0 0 1px rgba(94, 234, 212, 0.15), 0 20px 40px -12px rgba(59, 91, 255, 0.35)",
+        soft: "0 8px 30px -8px rgba(11, 18, 48, 0.12)",
+        glow: "0 0 0 1px rgba(96, 165, 250, 0.2), 0 20px 40px -12px rgba(59, 99, 255, 0.35)",
       },
       backgroundImage: {
-        "ink-gradient": "radial-gradient(120% 120% at 0% 0%, #131B3A 0%, #0B1120 60%)",
-        "signature-gradient": "linear-gradient(135deg, #2540C4 0%, #3B5BFF 55%, #0FA98A 130%)",
+        "ink-gradient": "radial-gradient(120% 120% at 0% 0%, #152350 0%, #0B1230 60%)",
+        "signature-gradient": "linear-gradient(135deg, #1E3FA8 0%, #3B63FF 55%, #60A5FA 130%)",
       },
     },
   },

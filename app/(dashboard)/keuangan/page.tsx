@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import KpiCard from "@/components/KpiCard";
+import ExportButtons from "@/components/ExportButtons";
 import { Wallet, TrendingDown, TrendingUp, Plus } from "lucide-react";
 
 function startOfMonth() {
@@ -36,7 +37,6 @@ export default async function KeuanganPage() {
   const totalExpense = expenses.reduce((s, t) => s + Number(t.amount), 0);
   const netProfit = totalIncome - totalExpense;
 
-  // Merge into one feed, most recent first
   const feed = [
     ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, division: t.division.name, label: t.source, desc: t.description, amount: Number(t.amount) })),
     ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount) })),
@@ -49,13 +49,14 @@ export default async function KeuanganPage() {
           <h1 className="font-display text-xl font-medium text-text">Keuangan</h1>
           <p className="text-sm text-text-secondary">Ringkasan bulan ini — semua divisi.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Link href="/keuangan/pemasukan" className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
             <Plus size={16} /> Pemasukan
           </Link>
           <Link href="/keuangan/pengeluaran" className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
             <Plus size={16} /> Pengeluaran
           </Link>
+          <ExportButtons period="bulanan" />
         </div>
       </div>
 

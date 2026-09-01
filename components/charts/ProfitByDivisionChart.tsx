@@ -2,7 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-const COLORS = ["#3B5BFF", "#2540C4", "#5EEAD4", "#0FA98A", "#818CF8"];
+const COLORS = ["#3B63FF", "#1E3FA8", "#60A5FA", "#152350", "#8AB4FF"];
 
 export default function ProfitByDivisionChart({ data }: { data: { division: string; laba: number }[] }) {
   return (
