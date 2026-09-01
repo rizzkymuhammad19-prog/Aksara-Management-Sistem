@@ -14,14 +14,13 @@ h1, h2, h3, .font-display {
   font-family: var(--font-space-grotesk), sans-serif;
 }
 
-/* Tabular numbers everywhere money/counts are shown — keeps digits aligned, trading-app style */
 .font-mono {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 /* ==========================================================
-   CARDS — soft shadow + colored top accent that reveals on hover
+   CARDS — soft shadow + monochrome accent line that reveals on hover
    ========================================================== */
 
 .card {
@@ -38,7 +37,7 @@ h1, h2, h3, .font-display {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #3b63ff, #60a5fa);
+  background: linear-gradient(90deg, #0a0a0a, #525252);
   opacity: 0;
   transform: scaleX(0.6);
   transform-origin: left;
@@ -46,7 +45,7 @@ h1, h2, h3, .font-display {
 }
 
 .card:hover {
-  box-shadow: 0 12px 32px -10px rgba(11, 18, 48, 0.16);
+  box-shadow: 0 12px 32px -10px rgba(10, 10, 10, 0.14);
 }
 
 .card:hover::before {
@@ -80,12 +79,12 @@ a:active {
 
 a[class*="bg-ink"]:not([class*="bg-ink-gradient"]),
 button[class*="bg-ink"]:not([class*="bg-ink-gradient"]) {
-  box-shadow: 0 4px 14px -4px rgba(59, 99, 255, 0.35);
+  box-shadow: 0 4px 14px -4px rgba(10, 10, 10, 0.3);
 }
 
 a[class*="bg-ink"]:not([class*="bg-ink-gradient"]):hover,
 button[class*="bg-ink"]:not([class*="bg-ink-gradient"]):hover {
-  box-shadow: 0 8px 22px -4px rgba(59, 99, 255, 0.45);
+  box-shadow: 0 8px 22px -4px rgba(10, 10, 10, 0.4);
   transform: translateY(-1px);
 }
 
@@ -107,17 +106,17 @@ textarea {
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: #cbd5e1;
+  border-color: #a3a3a3;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  box-shadow: 0 0 0 4px rgba(59, 99, 255, 0.12);
+  box-shadow: 0 0 0 4px rgba(10, 10, 10, 0.08);
 }
 
 /* ==========================================================
-   TABLES — dense, tabular numbers for money columns
+   TABLES
    ========================================================== */
 
 .card table thead th {
@@ -132,18 +131,12 @@ textarea:focus {
 }
 
 .card table tbody tr:hover {
-  background-color: rgba(59, 99, 255, 0.035);
+  background-color: rgba(10, 10, 10, 0.03);
 }
 
 .card table tbody td {
   padding-top: 0.7rem;
   padding-bottom: 0.7rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Gain/loss text — vivid green/red like a trading ticker, used for +/- amounts */
-.text-success,
-.text-gain {
   font-variant-numeric: tabular-nums;
 }
 
