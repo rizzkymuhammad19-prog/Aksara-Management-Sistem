@@ -23,14 +23,13 @@ export default async function DashboardPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [divisions, incomes, expenses, employeesCount, todayAttendance, designThisMonth, settings, allTimeIncomeAgg, allTimeExpenseAgg] = await Promise.all([
+  const [divisions, incomes, expenses, employeesCount, todayAttendance, designThisMonth, allTimeIncomeAgg, allTimeExpenseAgg] = await Promise.all([
     prisma.division.findMany(),
     isDirector ? prisma.incomeTransaction.findMany({ where: { date: { gte: monthStart } } }) : Promise.resolve([]),
     prisma.expenseTransaction.findMany({ where: { date: { gte: monthStart } } }),
     prisma.employee.count(),
     prisma.attendance.findMany({ where: { date: { gte: today } } }),
     prisma.designTask.count({ where: { date: { gte: monthStart } } }),
-    isDirector ? prisma.setting.findUnique({ where: { id: "default" } }) : Promise.resolve(null),
     isDirector ? prisma.incomeTransaction.aggregate({ _sum: { amount: true } }) : Promise.resolve(null),
     isDirector ? prisma.expenseTransaction.aggregate({ _sum: { amount: true } }) : Promise.resolve(null),
   ]);
@@ -40,8 +39,9 @@ export default async function DashboardPage() {
   const netProfit = totalIncome - totalExpense;
   const hadirToday = todayAttendance.filter((a) => a.status === "HADIR" || a.status === "TERLAMBAT").length;
 
+  const totalOpeningBalance = divisions.reduce((s, d) => s + Number(d.openingBalance), 0);
   const saldoKas = isDirector
-    ? Number(settings?.openingBalance || 0) + Number(allTimeIncomeAgg?._sum.amount || 0) - Number(allTimeExpenseAgg?._sum.amount || 0)
+    ? totalOpeningBalance + Number(allTimeIncomeAgg?._sum.amount || 0) - Number(allTimeExpenseAgg?._sum.amount || 0)
     : 0;
 
   const profitByDivision = isDirector
@@ -74,12 +74,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {isDirector && <KpiCard label="Saldo Kas" value={fmtRupiah(saldoKas)} icon={PiggyBank} signature />}
+        {isDirector && <KpiCard label="Saldo Kas (Semua Divisi)" value={fmtRupiah(saldoKas)} icon={PiggyBank} signature />}
         {isDirector && <KpiCard label="Pendapatan Bulan Ini" value={fmtRupiah(totalIncome)} icon={Wallet} />}
         <KpiCard label="Pengeluaran Bulan Ini" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
         {isDirector && <KpiCard label="Laba Bersih Bulan Ini" value={fmtRupiah(netProfit)} icon={TrendingUp} />}
         <KpiCard label="Total Karyawan" value={String(employeesCount)} icon={Users} />
-        <KpiCard label="Kehadiran Hari Ini" value={`${hadirToday}/${employeesCount}`} icon={ClipboardCheck} />
+        {isDirector && <KpiCard label="Kehadiran Hari Ini" value={`${hadirToday}/${employeesCount}`} icon={ClipboardCheck} />}
         <KpiCard label="Design Bulan Ini" value={String(designThisMonth)} icon={Palette} />
       </div>
 
@@ -90,39 +90,35 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AttendanceDonut data={attendanceBreakdown} />
+      {isDirector && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <AttendanceDonut data={attendanceBreakdown} />
 
-        <div className="lg:col-span-2 card">
-          <p className="font-display font-medium text-text mb-4">Ringkasan Divisi</p>
-          <div className="space-y-3">
-            {divisions.map((div) => {
-              const divExpense = expenses.filter((e) => e.divisionId === div.id).reduce((s, t) => s + Number(t.amount), 0);
-              const divIncome = isDirector ? incomes.filter((i) => i.divisionId === div.id).reduce((s, t) => s + Number(t.amount), 0) : 0;
-              return (
-                <div key={div.id} className="flex items-center justify-between border-b border-slate-50 pb-3 last:border-0">
-                  <span className="text-sm font-medium text-text">{div.name}</span>
-                  <div className="flex gap-6 text-sm">
-                    {isDirector ? (
-                      <>
-                        <span className="text-text-secondary">Pendapatan: {fmtRupiah(divIncome)}</span>
-                        <span className={divIncome - divExpense >= 0 ? "text-success" : "text-danger"}>
-                          Laba: {fmtRupiah(divIncome - divExpense)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-text-secondary">Pengeluaran: {fmtRupiah(divExpense)}</span>
-                    )}
+          <div className="lg:col-span-2 card">
+            <p className="font-display font-medium text-text mb-4">Ringkasan Divisi</p>
+            <div className="space-y-3">
+              {divisions.map((div) => {
+                const divExpense = expenses.filter((e) => e.divisionId === div.id).reduce((s, t) => s + Number(t.amount), 0);
+                const divIncome = incomes.filter((i) => i.divisionId === div.id).reduce((s, t) => s + Number(t.amount), 0);
+                return (
+                  <div key={div.id} className="flex items-center justify-between border-b border-slate-50 pb-3 last:border-0">
+                    <span className="text-sm font-medium text-text">{div.name}</span>
+                    <div className="flex gap-6 text-sm">
+                      <span className="text-text-secondary">Pendapatan: {fmtRupiah(divIncome)}</span>
+                      <span className={divIncome - divExpense >= 0 ? "text-success" : "text-danger"}>
+                        Laba: {fmtRupiah(divIncome - divExpense)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {divisions.length === 0 && (
-              <p className="text-sm text-text-secondary">Belum ada data divisi.</p>
-            )}
+                );
+              })}
+              {divisions.length === 0 && (
+                <p className="text-sm text-text-secondary">Belum ada data divisi.</p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

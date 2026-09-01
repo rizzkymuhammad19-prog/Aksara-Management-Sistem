@@ -45,12 +45,13 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
 
   let saldoKas = 0;
   if (isDirector) {
-    const [settings, allTimeIncomeAgg, allTimeExpenseAgg] = await Promise.all([
-      prisma.setting.findUnique({ where: { id: "default" } }),
+    const [allDivisions, allTimeIncomeAgg, allTimeExpenseAgg] = await Promise.all([
+      prisma.division.findMany(),
       prisma.incomeTransaction.aggregate({ _sum: { amount: true } }),
       prisma.expenseTransaction.aggregate({ _sum: { amount: true } }),
     ]);
-    saldoKas = Number(settings?.openingBalance || 0) + Number(allTimeIncomeAgg._sum.amount || 0) - Number(allTimeExpenseAgg._sum.amount || 0);
+    const totalOpeningBalance = allDivisions.reduce((s, d) => s + Number(d.openingBalance), 0);
+    saldoKas = totalOpeningBalance + Number(allTimeIncomeAgg._sum.amount || 0) - Number(allTimeExpenseAgg._sum.amount || 0);
   }
 
   const feed = isDirector
@@ -90,7 +91,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
 
       {isDirector ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard label="Saldo Kas" value={fmtRupiah(saldoKas)} icon={PiggyBank} signature />
+          <KpiCard label="Saldo Kas (Semua Divisi)" value={fmtRupiah(saldoKas)} icon={PiggyBank} signature />
           <KpiCard label="Pendapatan Bulan Ini" value={fmtRupiah(totalIncome)} icon={Wallet} />
           <KpiCard label="Pengeluaran Bulan Ini" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
           <KpiCard label="Laba Bersih Bulan Ini" value={fmtRupiah(netProfit)} icon={TrendingUp} />

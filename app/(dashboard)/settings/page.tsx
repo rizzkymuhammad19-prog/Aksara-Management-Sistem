@@ -30,7 +30,6 @@ async function updateSettings(formData: FormData) {
       radiusM: Number(formData.get("radiusM")),
       officeAddress: (formData.get("officeAddress") as string) || null,
       workDays: selectedDays.join(","),
-      openingBalance: Number(formData.get("openingBalance") || 0),
     },
     create: {
       id: "default",
@@ -40,10 +39,21 @@ async function updateSettings(formData: FormData) {
       radiusM: Number(formData.get("radiusM")),
       officeAddress: (formData.get("officeAddress") as string) || null,
       workDays: selectedDays.join(","),
-      openingBalance: Number(formData.get("openingBalance") || 0),
     },
   });
 
+  redirect("/settings");
+}
+
+async function updateDivisionBalance(formData: FormData) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
+
+  const divisionId = formData.get("divisionId") as string;
+  const openingBalance = Number(formData.get("openingBalance") || 0);
+
+  await prisma.division.update({ where: { id: divisionId }, data: { openingBalance } });
   redirect("/settings");
 }
 
@@ -107,6 +117,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
   const isDirector = session.user.role === "DIRECTOR";
   const settings = await prisma.setting.findUnique({ where: { id: "default" } });
   const holidays = await prisma.holiday.findMany({ orderBy: { date: "asc" } });
+  const divisions = await prisma.division.findMany({ orderBy: { name: "asc" } });
   const expenseCategories = await prisma.financialCategory.findMany({ where: { type: "EXPENSE" }, orderBy: { name: "asc" } });
   const incomeCategories = await prisma.financialCategory.findMany({ where: { type: "INCOME" }, orderBy: { name: "asc" } });
   const activeDays = (settings?.workDays || "Mon,Tue,Wed,Thu,Fri").split(",");
@@ -182,14 +193,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
             </p>
           </div>
 
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3.5">
-            <label className="block text-sm font-medium text-text mb-1.5">Saldo Awal / Dana yang Sudah Ada (Rp)</label>
-            <input type="number" name="openingBalance" defaultValue={Number(settings?.openingBalance || 0)} min="0" step="1" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white" />
-            <p className="text-xs text-text-secondary mt-1.5">
-              Dana kas yang sudah ada sebelum mulai pakai sistem ini. Akan otomatis ditambahkan ke perhitungan Saldo Kas total.
-            </p>
-          </div>
-
           <button type="submit" className="w-full rounded-xl bg-ink hover:bg-ink-soft transition-colors text-white font-medium py-2.5 text-sm">
             Simpan Pengaturan
           </button>
@@ -211,6 +214,34 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
           <div className="flex justify-between">
             <span className="text-text-secondary">Hari Kerja</span>
             <span className="text-text font-medium">{activeDays.map((d) => DAY_LABEL[d]).join(", ")}</span>
+          </div>
+        </div>
+      )}
+
+      {isDirector && (
+        <div className="card">
+          <p className="font-display font-medium text-text mb-1">Saldo Awal per Divisi</p>
+          <p className="text-xs text-text-secondary mb-4">Dana kas yang sudah ada di masing-masing divisi sebelum mulai pakai sistem ini. Otomatis ditambahkan ke perhitungan Saldo Kas divisi tersebut.</p>
+
+          <div className="space-y-3">
+            {divisions.map((div) => (
+              <form key={div.id} action={updateDivisionBalance} className="flex items-center gap-2">
+                <input type="hidden" name="divisionId" value={div.id} />
+                <span className="flex-1 text-sm text-text truncate">{div.name}</span>
+                <input
+                  type="number"
+                  name="openingBalance"
+                  defaultValue={Number(div.openingBalance)}
+                  min="0"
+                  step="1"
+                  className="w-40 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button type="submit" className="px-3 py-2 rounded-xl bg-ink text-white text-xs font-medium hover:bg-ink-soft transition-colors">
+                  Simpan
+                </button>
+              </form>
+            ))}
+            {divisions.length === 0 && <p className="text-sm text-text-secondary">Belum ada divisi.</p>}
           </div>
         </div>
       )}

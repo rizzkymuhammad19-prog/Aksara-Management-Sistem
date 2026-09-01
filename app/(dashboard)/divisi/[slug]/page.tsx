@@ -7,7 +7,7 @@ import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import RevenueChart from "@/components/charts/RevenueChart";
 import ExportButtons from "@/components/ExportButtons";
-import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus, PiggyBank } from "lucide-react";
 
 function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -52,6 +52,15 @@ export default async function DivisionDetailPage({
   const totalIncome = incomes.reduce((s, t) => s + Number(t.amount), 0);
   const totalExpense = expenses.reduce((s, t) => s + Number(t.amount), 0);
   const netProfit = totalIncome - totalExpense;
+
+  let saldoKasDivisi = 0;
+  if (isDirector) {
+    const [allTimeIncomeAgg, allTimeExpenseAgg] = await Promise.all([
+      prisma.incomeTransaction.aggregate({ where: { divisionId: division.id }, _sum: { amount: true } }),
+      prisma.expenseTransaction.aggregate({ where: { divisionId: division.id }, _sum: { amount: true } }),
+    ]);
+    saldoKasDivisi = Number(division.openingBalance) + Number(allTimeIncomeAgg._sum.amount || 0) - Number(allTimeExpenseAgg._sum.amount || 0);
+  }
 
   const trend = [{ period: label, pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
 
@@ -102,9 +111,10 @@ export default async function DivisionDetailPage({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {isDirector && <KpiCard label="Saldo Kas Divisi" value={fmtRupiah(saldoKasDivisi)} icon={PiggyBank} signature />}
         {isDirector && <KpiCard label="Pendapatan" value={fmtRupiah(totalIncome)} icon={Wallet} />}
         <KpiCard label="Pengeluaran" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
-        {isDirector && <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} signature />}
+        {isDirector && <KpiCard label="Laba Bersih" value={fmtRupiah(netProfit)} icon={TrendingUp} />}
         <KpiCard label="Karyawan" value={String(employees.length)} icon={Users} />
         <KpiCard label="Task Selesai" value={String(tasksDone)} icon={ListTodo} />
         <KpiCard label="Design" value={String(designCount)} icon={Palette} />
