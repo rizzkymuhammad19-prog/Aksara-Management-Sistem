@@ -10,7 +10,6 @@ async function createIncome(formData: FormData) {
 
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (session.user.role !== "DIRECTOR") redirect("/keuangan?error=forbidden");
 
   let employeeId = session.user.employeeId;
   if (!employeeId) {
@@ -40,7 +39,6 @@ async function createIncome(formData: FormData) {
 export default async function TambahPemasukanPage({ searchParams }: { searchParams: { divisionId?: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (session.user.role !== "DIRECTOR") redirect("/keuangan?error=forbidden");
 
   const [divisions, incomeCategories] = await Promise.all([
     prisma.division.findMany({ orderBy: { name: "asc" } }),
@@ -85,9 +83,6 @@ export default async function TambahPemasukanPage({ searchParams }: { searchPara
             </select>
           ) : (
             <input type="text" name="source" required placeholder="Penjualan / Jasa / dll" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-          )}
-          {incomeCategories.length === 0 && (
-            <p className="text-xs text-text-secondary mt-1">Belum ada kategori pendapatan — tambahkan dari halaman Settings supaya bisa dipilih dari daftar.</p>
           )}
         </div>
 

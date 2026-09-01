@@ -76,7 +76,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {isDirector && <KpiCard label="Saldo Kas (Semua Divisi)" value={fmtRupiah(saldoKas)} icon={PiggyBank} signature />}
         {isDirector && <KpiCard label="Pendapatan Bulan Ini" value={fmtRupiah(totalIncome)} icon={Wallet} />}
-        <KpiCard label="Pengeluaran Bulan Ini" value={fmtRupiah(totalExpense)} icon={TrendingDown} />
+        {isDirector && <KpiCard label="Pengeluaran Bulan Ini" value={fmtRupiah(totalExpense)} icon={TrendingDown} />}
         {isDirector && <KpiCard label="Laba Bersih Bulan Ini" value={fmtRupiah(netProfit)} icon={TrendingUp} />}
         <KpiCard label="Total Karyawan" value={String(employeesCount)} icon={Users} />
         {isDirector && <KpiCard label="Kehadiran Hari Ini" value={`${hadirToday}/${employeesCount}`} icon={ClipboardCheck} />}

@@ -84,11 +84,9 @@ export default async function DivisionDetailPage({
           <p className="text-sm text-text-secondary">{label}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {isDirector && (
-            <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
-              <Plus size={16} /> Pemasukan
-            </Link>
-          )}
+          <Link href={`/keuangan/pemasukan?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
+            <Plus size={16} /> Pemasukan
+          </Link>
           <Link href={`/keuangan/pengeluaran?divisionId=${division.id}`} className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
             <Plus size={16} /> Pengeluaran
           </Link>

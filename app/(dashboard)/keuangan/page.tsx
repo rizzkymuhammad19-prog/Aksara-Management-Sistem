@@ -71,11 +71,9 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
           <p className="text-sm text-text-secondary">{isDirector ? "Ringkasan bulan ini — semua divisi." : "Input pengeluaran bulan ini."}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {isDirector && (
-            <Link href="/keuangan/pemasukan" className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
-              <Plus size={16} /> Pemasukan
-            </Link>
-          )}
+          <Link href="/keuangan/pemasukan" className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
+            <Plus size={16} /> Pemasukan
+          </Link>
           <Link href="/keuangan/pengeluaran" className="inline-flex items-center gap-1.5 text-sm font-medium bg-white border border-slate-200 text-text px-4 py-2 rounded-xl hover:bg-slate-50 transition-colors">
             <Plus size={16} /> Pengeluaran
           </Link>
@@ -109,12 +107,8 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
           <div className="text-center py-12">
             <p className="text-text-secondary text-sm mb-4">Belum ada transaksi{isDirector ? ". Mulai catat pemasukan atau pengeluaran pertama." : " pengeluaran."}</p>
             <div className="flex justify-center gap-2">
-              {isDirector && (
-                <>
-                  <Link href="/keuangan/pemasukan" className="text-sm font-medium text-primary hover:underline">+ Tambah Pemasukan</Link>
-                  <span className="text-text-secondary">·</span>
-                </>
-              )}
+              <Link href="/keuangan/pemasukan" className="text-sm font-medium text-primary hover:underline">+ Tambah Pemasukan</Link>
+              <span className="text-text-secondary">·</span>
               <Link href="/keuangan/pengeluaran" className="text-sm font-medium text-primary hover:underline">+ Tambah Pengeluaran</Link>
             </div>
           </div>
