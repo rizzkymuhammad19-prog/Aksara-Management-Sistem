@@ -12,5 +12,6 @@ export const config = {
     "/design/:path*",
     "/performance/:path*",
     "/laporan/:path*",
+    "/profile/:path*",
   ],
 };

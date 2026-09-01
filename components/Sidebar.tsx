@@ -15,6 +15,7 @@ import {
   TrendingUp,
   FileBarChart,
   Settings,
+  UserCircle,
   LogOut,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/performance", label: "Performance", icon: TrendingUp },
   { href: "/laporan", label: "Laporan", icon: FileBarChart },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/profile", label: "Profil Saya", icon: UserCircle },
 ];
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
