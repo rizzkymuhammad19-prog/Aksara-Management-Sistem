@@ -13,5 +13,6 @@ export const config = {
     "/performance/:path*",
     "/laporan/:path*",
     "/profile/:path*",
+    "/invoice/:path*",
   ],
 };
