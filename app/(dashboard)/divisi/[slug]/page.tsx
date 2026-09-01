@@ -36,8 +36,8 @@ export default async function DivisionDetailPage({
 
   const [employees, incomes, expenses, tasksDone, designCount] = await Promise.all([
     prisma.employee.findMany({ where: { divisionId: division.id }, include: { user: true } }),
-    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, orderBy: { date: "desc" } }),
-    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true }, orderBy: { date: "desc" } }),
+    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { createdBy: { include: { user: true } } }, orderBy: { date: "desc" } }),
+    prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true, createdBy: { include: { user: true } } }, orderBy: { date: "desc" } }),
     prisma.task.count({ where: { divisionId: division.id, status: "DONE" } }),
     prisma.designTask.count({ where: { divisionId: division.id, date: { gte: start, lte: end } } }),
   ]);
@@ -49,8 +49,8 @@ export default async function DivisionDetailPage({
   const trend = [{ period: label, pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
 
   const feed = [
-    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source, amount: Number(t.amount) })),
-    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) })),
+    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
+    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
@@ -110,7 +110,7 @@ export default async function DivisionDetailPage({
               <div key={`${t.type}-${t.id}`} className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0 text-sm">
                 <div>
                   <p className="text-text">{t.label}</p>
-                  <p className="text-xs text-text-secondary">{fmtDate(t.date)}</p>
+                  <p className="text-xs text-text-secondary">{fmtDate(t.date)} · diinput oleh {t.inputBy}</p>
                 </div>
                 <span className={`font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
                   {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}

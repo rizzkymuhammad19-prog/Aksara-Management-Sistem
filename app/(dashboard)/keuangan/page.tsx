@@ -23,12 +23,12 @@ export default async function KeuanganPage() {
   const [incomes, expenses] = await Promise.all([
     prisma.incomeTransaction.findMany({
       where: { date: { gte: monthStart } },
-      include: { division: true },
+      include: { division: true, createdBy: { include: { user: true } } },
       orderBy: { date: "desc" },
     }),
     prisma.expenseTransaction.findMany({
       where: { date: { gte: monthStart } },
-      include: { division: true, category: true },
+      include: { division: true, category: true, createdBy: { include: { user: true } } },
       orderBy: { date: "desc" },
     }),
   ]);
@@ -38,8 +38,8 @@ export default async function KeuanganPage() {
   const netProfit = totalIncome - totalExpense;
 
   const feed = [
-    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, division: t.division.name, label: t.source, desc: t.description, amount: Number(t.amount) })),
-    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount) })),
+    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, division: t.division.name, label: t.source, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
+    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
@@ -87,6 +87,7 @@ export default async function KeuanganPage() {
                   <th className="pb-2 font-medium">Divisi</th>
                   <th className="pb-2 font-medium">Kategori</th>
                   <th className="pb-2 font-medium">Deskripsi</th>
+                  <th className="pb-2 font-medium">Diinput oleh</th>
                   <th className="pb-2 font-medium text-right">Nominal</th>
                 </tr>
               </thead>
@@ -97,6 +98,7 @@ export default async function KeuanganPage() {
                     <td className="py-2.5">{t.division}</td>
                     <td className="py-2.5">{t.label}</td>
                     <td className="py-2.5 text-text-secondary">{t.desc || "—"}</td>
+                    <td className="py-2.5 text-text-secondary">{t.inputBy}</td>
                     <td className={`py-2.5 text-right font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
                       {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
                     </td>

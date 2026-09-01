@@ -38,10 +38,15 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex flex-col bg-ink-gradient h-full w-full">
-      <div className="px-6 py-6">
-        <div className="bg-white/95 rounded-lg px-3 py-2.5 w-fit">
-          <Image src="/logo.png" alt="AKSARA" width={130} height={44} className="h-auto w-[130px]" priority />
-        </div>
+      <div className="px-6 py-7">
+        <Image
+          src="/logo.png"
+          alt="AKSARA"
+          width={130}
+          height={44}
+          className="h-auto w-[130px] brightness-0 invert opacity-95"
+          priority
+        />
       </div>
 
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">

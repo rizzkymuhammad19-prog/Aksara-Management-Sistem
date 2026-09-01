@@ -10,19 +10,57 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.card {
-  @apply bg-white rounded-card shadow-soft p-6 border border-slate-100 transition-shadow duration-200;
-}
-
-.card-signature {
-  @apply rounded-card p-6 text-text-inverse bg-signature-gradient shadow-glow transition-shadow duration-200;
-}
-
 h1, h2, h3, .font-display {
   font-family: var(--font-space-grotesk), sans-serif;
 }
 
-/* Smooth, consistent transitions for everything interactive */
+/* ==========================================================
+   CARDS — soft shadow + colored top accent that reveals on hover
+   ========================================================== */
+
+.card {
+  @apply bg-white rounded-card shadow-soft p-6 border border-slate-100;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b63ff, #60a5fa);
+  opacity: 0;
+  transform: scaleX(0.6);
+  transform-origin: left;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.card:hover {
+  box-shadow: 0 12px 32px -10px rgba(11, 18, 48, 0.16);
+}
+
+.card:hover::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.card-signature {
+  @apply rounded-card p-6 text-text-inverse bg-signature-gradient shadow-glow;
+  transition: box-shadow 220ms ease, transform 220ms ease;
+}
+
+.card-signature:hover {
+  transform: translateY(-2px);
+}
+
+/* ==========================================================
+   BUTTONS & LINKS — smooth, tactile, with lift on primary actions
+   ========================================================== */
+
 button,
 a {
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease,
@@ -34,7 +72,70 @@ a:active {
   transform: scale(0.98);
 }
 
-/* Page fade-in on navigation */
+/* Primary action buttons/links (the ones using bg-ink) get a soft glow + lift */
+a[class*="bg-ink"]:not([class*="bg-ink-gradient"]),
+button[class*="bg-ink"]:not([class*="bg-ink-gradient"]) {
+  box-shadow: 0 4px 14px -4px rgba(59, 99, 255, 0.35);
+}
+
+a[class*="bg-ink"]:not([class*="bg-ink-gradient"]):hover,
+button[class*="bg-ink"]:not([class*="bg-ink-gradient"]):hover {
+  box-shadow: 0 8px 22px -4px rgba(59, 99, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+a[class*="bg-ink"]:not([class*="bg-ink-gradient"]):active,
+button[class*="bg-ink"]:not([class*="bg-ink-gradient"]):active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ==========================================================
+   FORM INPUTS — softer, glowing focus state instead of a hard ring
+   ========================================================== */
+
+input,
+select,
+textarea {
+  transition: box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: #cbd5e1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 4px rgba(59, 99, 255, 0.12);
+}
+
+/* ==========================================================
+   TABLES — gentle row hover + breathing room
+   ========================================================== */
+
+.card table thead th {
+  padding-bottom: 0.75rem;
+}
+
+.card table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.card table tbody tr:hover {
+  background-color: rgba(59, 99, 255, 0.035);
+}
+
+.card table tbody td {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+/* ==========================================================
+   PAGE TRANSITIONS
+   ========================================================== */
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -50,17 +151,13 @@ a:active {
   animation: fade-in 0.25s ease-out;
 }
 
-/* Smoother table row hover */
-tbody tr {
-  transition: background-color 150ms ease;
-}
-
-/* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
   .animate-fade-in,
+  .card,
+  .card::before,
   button,
   a {
     animation: none !important;
