@@ -70,7 +70,7 @@ enum NotificationType {
 
 model Division {
   id          String   @id @default(cuid())
-  name        String   @unique // AKV, Sayur Express, Ruang Berita, Komputer, Website Development
+  name        String   @unique
   slug        String   @unique
   description String?
   createdAt   DateTime @default(now())
@@ -111,7 +111,7 @@ model Employee {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   divisionId  String
   division    Division @relation(fields: [divisionId], references: [id])
-  position    String   // jabatan
+  position    String
   isDesigner  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -133,7 +133,7 @@ model Employee {
 
 model AttendanceLocation {
   id        String  @id @default(cuid())
-  name      String  // e.g. "Kantor Pusat"
+  name      String
   latitude  Float
   longitude Float
   radiusM   Int     @default(100)
@@ -187,7 +187,7 @@ model IncomeTransaction {
   divisionId      String
   division        Division @relation(fields: [divisionId], references: [id])
   date            DateTime @db.Date
-  source          String   // sumber pemasukan
+  source          String
   description     String?
   amount          Decimal  @db.Decimal(14, 2)
   paymentMethod   String
@@ -265,7 +265,7 @@ model DesignTask {
   designer    Employee     @relation(fields: [designerId], references: [id])
   date        DateTime     @db.Date
   projectName String
-  designType  String       // Poster, Feed IG, Story, Banner, Logo, dst
+  designType  String
   client      String?
   description String?
   status      DesignStatus @default(DRAFT)
@@ -297,7 +297,7 @@ model EmployeeTarget {
   id            String   @id @default(cuid())
   employeeId    String
   employee      Employee @relation(fields: [employeeId], references: [id])
-  jobType       String   // e.g. "Design", "Project"
+  jobType       String
   targetValue   Int
   actualValue   Int      @default(0)
   periodStart   DateTime @db.Date
@@ -325,7 +325,7 @@ model EmployeePerformance {
 }
 
 // ==========================================================
-// NOTIFICATIONS, REPORTS, SETTINGS, AUDIT LOG
+// NOTIFICATIONS, REPORTS, SETTINGS, AUDIT LOG, HOLIDAYS
 // ==========================================================
 
 model Notification {
@@ -344,7 +344,7 @@ model Notification {
 model Report {
   id          String   @id @default(cuid())
   title       String
-  type        String   // daily, weekly, monthly, executive
+  type        String
   divisionId  String?
   periodStart DateTime @db.Date
   periodEnd   DateTime @db.Date
@@ -368,6 +368,15 @@ model Setting {
   workDays      String  @default("Mon,Tue,Wed,Thu,Fri")
 
   @@map("settings")
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  description String
+  createdAt   DateTime @default(now())
+
+  @@map("holidays")
 }
 
 model AuditLog {
