@@ -2,18 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
 }
 
 .card {
-  @apply bg-white rounded-card shadow-soft p-6 border border-slate-100;
+  @apply bg-white rounded-card shadow-soft p-6 border border-slate-100 transition-shadow duration-200;
 }
 
 .card-signature {
-  @apply rounded-card p-6 text-text-inverse bg-signature-gradient shadow-glow;
+  @apply rounded-card p-6 text-text-inverse bg-signature-gradient shadow-glow transition-shadow duration-200;
 }
 
 h1, h2, h3, .font-display {
   font-family: var(--font-space-grotesk), sans-serif;
+}
+
+/* Smooth, consistent transitions for everything interactive */
+button,
+a {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease,
+    opacity 200ms ease, transform 150ms ease, box-shadow 200ms ease;
+}
+
+button:active,
+a:active {
+  transform: scale(0.98);
+}
+
+/* Page fade-in on navigation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+/* Smoother table row hover */
+tbody tr {
+  transition: background-color 150ms ease;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-in,
+  button,
+  a {
+    animation: none !important;
+    transition: none !important;
+  }
 }
