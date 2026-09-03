@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { distanceMeters } from "@/lib/geo";
+import { jakartaTodayDateOnly, isBeforeJakartaDeadline } from "@/lib/jakarta";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -28,8 +29,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = jakartaTodayDateOnly();
 
   const existing = await prisma.attendance.findUnique({
     where: { employeeId_date: { employeeId: session.user.employeeId, date: today } },
@@ -38,12 +38,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Anda sudah absen masuk hari ini." }, { status: 400 });
   }
 
-  // Determine Hadir vs Terlambat based on configured clock-in time
+  // Determine Hadir vs Terlambat based on WIB wall-clock time, not server (UTC) time
   const now = new Date();
-  const [clockH, clockM] = (settings.clockInTime || "08:00").split(":").map(Number);
-  const deadline = new Date(now);
-  deadline.setHours(clockH, clockM, 0, 0);
-  const status = now <= deadline ? "HADIR" : "TERLAMBAT";
+  const status = isBeforeJakartaDeadline(settings.clockInTime || "08:00") ? "HADIR" : "TERLAMBAT";
 
   const attendance = await prisma.attendance.upsert({
     where: { employeeId_date: { employeeId: session.user.employeeId, date: today } },

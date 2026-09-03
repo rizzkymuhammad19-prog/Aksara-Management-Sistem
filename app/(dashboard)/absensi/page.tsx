@@ -1,9 +1,11 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CheckInOut from "@/components/CheckInOut";
 import SetOfficeLocation from "@/components/SetOfficeLocation";
+import { jakartaTodayDateOnly, formatJakartaTime, formatJakartaDateLong } from "@/lib/jakarta";
 import { MapPinOff, Lock } from "lucide-react";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -45,8 +47,7 @@ async function setManualAttendance(formData: FormData) {
   const employeeId = formData.get("employeeId") as string;
   const status = formData.get("status") as string;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = jakartaTodayDateOnly();
 
   await prisma.attendance.upsert({
     where: { employeeId_date: { employeeId, date: today } },
@@ -61,8 +62,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
   const session = await getServerSession(authOptions);
   const isDirector = session?.user.role === "DIRECTOR";
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = jakartaTodayDateOnly();
 
   const settings = await prisma.setting.findUnique({ where: { id: "default" } });
 
@@ -99,11 +99,18 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-xl font-medium text-text">Absensi</h1>
-        <p className="text-sm text-text-secondary">
-          {today.toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="font-display text-xl font-medium text-text">Absensi</h1>
+          <p className="text-sm text-text-secondary">
+            {formatJakartaDateLong(new Date())} (WIB)
+          </p>
+        </div>
+        {isDirector && (
+          <Link href="/absensi/laporan-bulanan" className="text-sm font-medium text-primary hover:underline">
+            Lihat Rekap Bulanan →
+          </Link>
+        )}
       </div>
 
       {searchParams.error === "forbidden" && (
@@ -201,10 +208,10 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
                       <td className="py-2.5 font-medium text-text">{a.employee.user.name}</td>
                       <td className="py-2.5">{a.employee.division.name}</td>
                       <td className="py-2.5 text-text-secondary">
-                        {a.checkInAt ? new Date(a.checkInAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        {a.checkInAt ? formatJakartaTime(a.checkInAt) : "—"}
                       </td>
                       <td className="py-2.5 text-text-secondary">
-                        {a.checkOutAt ? new Date(a.checkOutAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        {a.checkOutAt ? formatJakartaTime(a.checkOutAt) : "—"}
                       </td>
                       <td className="py-2.5">
                         <span className={`text-xs px-2.5 py-1 rounded-full ${STATUS_COLOR[a.status]}`}>

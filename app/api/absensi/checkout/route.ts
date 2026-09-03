@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { distanceMeters } from "@/lib/geo";
+import { jakartaTodayDateOnly } from "@/lib/jakarta";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -28,8 +29,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = jakartaTodayDateOnly();
 
   const existing = await prisma.attendance.findUnique({
     where: { employeeId_date: { employeeId: session.user.employeeId, date: today } },
