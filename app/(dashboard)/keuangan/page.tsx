@@ -1,10 +1,29 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import KpiCard from "@/components/KpiCard";
 import ExportButtons from "@/components/ExportButtons";
-import { Wallet, TrendingDown, TrendingUp, Plus, Lock, PiggyBank, Pencil } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, Plus, Lock, PiggyBank, Pencil, Trash2 } from "lucide-react";
+
+async function deleteTransaction(formData: FormData) {
+  "use server";
+
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+
+  const id = formData.get("id") as string;
+  const type = formData.get("type") as string;
+
+  if (type === "income") {
+    await prisma.incomeTransaction.delete({ where: { id } });
+  } else {
+    await prisma.expenseTransaction.delete({ where: { id } });
+  }
+
+  redirect("/keuangan");
+}
 
 function startOfMonth() {
   const d = new Date();
@@ -132,9 +151,18 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
                       {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
                     </td>
                     <td className="py-2.5 text-right">
-                      <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary inline-flex">
-                        <Pencil size={14} />
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary inline-flex">
+                          <Pencil size={14} />
+                        </Link>
+                        <form action={deleteTransaction}>
+                          <input type="hidden" name="id" value={t.id} />
+                          <input type="hidden" name="type" value={t.type} />
+                          <button className="text-text-secondary hover:text-danger inline-flex">
+                            <Trash2 size={14} />
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -33,7 +33,6 @@ async function updateIncome(formData: FormData) {
 export default async function EditPemasukanPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  if (session.user.role !== "DIRECTOR") redirect("/keuangan?error=forbidden");
 
   const [income, divisions, incomeCategories] = await Promise.all([
     prisma.incomeTransaction.findUnique({ where: { id: params.id } }),

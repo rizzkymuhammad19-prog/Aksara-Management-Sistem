@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +8,26 @@ import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import RevenueChart from "@/components/charts/RevenueChart";
 import ExportButtons from "@/components/ExportButtons";
-import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus, PiggyBank, Pencil } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus, PiggyBank, Pencil, Trash2 } from "lucide-react";
+
+async function deleteTransaction(formData: FormData) {
+  "use server";
+
+  const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
+
+  const id = formData.get("id") as string;
+  const type = formData.get("type") as string;
+  const slug = formData.get("slug") as string;
+
+  if (type === "income") {
+    await prisma.incomeTransaction.delete({ where: { id } });
+  } else {
+    await prisma.expenseTransaction.delete({ where: { id } });
+  }
+
+  redirect(`/divisi/${slug}`);
+}
 
 function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -138,6 +158,14 @@ export default async function DivisionDetailPage({
                   <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary">
                     <Pencil size={13} />
                   </Link>
+                  <form action={deleteTransaction}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="type" value={t.type} />
+                    <input type="hidden" name="slug" value={division.slug} />
+                    <button className="text-text-secondary hover:text-danger">
+                      <Trash2 size={13} />
+                    </button>
+                  </form>
                 </div>
               </div>
             ))}
