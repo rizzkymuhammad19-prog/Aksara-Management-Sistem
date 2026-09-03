@@ -41,9 +41,7 @@ export default async function DivisionDetailPage({
 
   const [employees, incomes, expenses, tasksDone, designCount] = await Promise.all([
     prisma.employee.findMany({ where: { divisionId: division.id }, include: { user: true } }),
-    isDirector
-      ? prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, orderBy: { date: "desc" } })
-      : Promise.resolve([]),
+    prisma.incomeTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, orderBy: { date: "desc" } }),
     prisma.expenseTransaction.findMany({ where: { divisionId: division.id, date: { gte: start, lte: end } }, include: { category: true }, orderBy: { date: "desc" } }),
     prisma.task.count({ where: { divisionId: division.id, status: "DONE" } }),
     prisma.designTask.count({ where: { divisionId: division.id, date: { gte: start, lte: end } } }),
@@ -64,12 +62,10 @@ export default async function DivisionDetailPage({
 
   const trend = [{ period: label, pendapatan: totalIncome, pengeluaran: totalExpense, laba: netProfit }];
 
-  const feed = isDirector
-    ? [
-        ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source })),
-        ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) })),
-      ]
-    : expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) }));
+  const feed = [
+    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, label: t.source, amount: Number(t.amount) })),
+    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, label: t.category.name, amount: Number(t.amount) })),
+  ];
 
   const sortedFeed = [...feed].sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
 
@@ -121,7 +117,7 @@ export default async function DivisionDetailPage({
       {isDirector && <RevenueChart data={trend} />}
 
       <div className="card">
-        <p className="font-display font-medium text-text mb-4">{isDirector ? `Transaksi — ${label}` : `Pengeluaran — ${label}`}</p>
+        <p className="font-display font-medium text-text mb-4">Transaksi — {label}</p>
         {sortedFeed.length === 0 ? (
           <p className="text-sm text-text-secondary text-center py-8">Belum ada data pada periode ini.</p>
         ) : (
@@ -136,7 +132,7 @@ export default async function DivisionDetailPage({
                   {t.type === "expense" && (
                     <span className="font-medium text-danger">− {fmtRupiah(t.amount)}</span>
                   )}
-                  {t.type === "income" && isDirector && (
+                  {t.type === "income" && (
                     <span className="font-medium text-success">+ {fmtRupiah(t.amount)}</span>
                   )}
                   <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary">

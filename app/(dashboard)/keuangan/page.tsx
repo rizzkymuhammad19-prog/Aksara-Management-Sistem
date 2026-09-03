@@ -25,13 +25,11 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
   const monthStart = startOfMonth();
 
   const [incomes, expenses] = await Promise.all([
-    isDirector
-      ? prisma.incomeTransaction.findMany({
-          where: { date: { gte: monthStart } },
-          include: { division: true, createdBy: { include: { user: true } } },
-          orderBy: { date: "desc" },
-        })
-      : Promise.resolve([]),
+    prisma.incomeTransaction.findMany({
+      where: { date: { gte: monthStart } },
+      include: { division: true, createdBy: { include: { user: true } } },
+      orderBy: { date: "desc" },
+    }),
     prisma.expenseTransaction.findMany({
       where: { date: { gte: monthStart } },
       include: { division: true, category: true, createdBy: { include: { user: true } } },
@@ -54,21 +52,17 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
     saldoKas = totalOpeningBalance + Number(allTimeIncomeAgg._sum.amount || 0) - Number(allTimeExpenseAgg._sum.amount || 0);
   }
 
-  const feed = isDirector
-    ? [
-        ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, division: t.division.name, label: t.source, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
-        ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
-      ].sort((a, b) => b.date.getTime() - a.date.getTime())
-    : expenses
-        .map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name }))
-        .sort((a, b) => b.date.getTime() - a.date.getTime());
+  const feed = [
+    ...incomes.map((t) => ({ id: t.id, type: "income" as const, date: t.date, division: t.division.name, label: t.source, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
+    ...expenses.map((t) => ({ id: t.id, type: "expense" as const, date: t.date, division: t.division.name, label: t.category.name, desc: t.description, amount: Number(t.amount), inputBy: t.createdBy.user.name })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-display text-xl font-medium text-text">Keuangan</h1>
-          <p className="text-sm text-text-secondary">{isDirector ? "Ringkasan bulan ini — semua divisi." : "Input pengeluaran bulan ini."}</p>
+          <p className="text-sm text-text-secondary">{isDirector ? "Ringkasan bulan ini — semua divisi." : "Transaksi bulan ini — semua divisi."}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Link href="/keuangan/pemasukan" className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
@@ -101,11 +95,11 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
       )}
 
       <div className="card">
-        <p className="font-display font-medium text-text mb-4">{isDirector ? "Transaksi Bulan Ini" : "Pengeluaran Bulan Ini"}</p>
+        <p className="font-display font-medium text-text mb-4">Transaksi Bulan Ini</p>
 
         {feed.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-text-secondary text-sm mb-4">Belum ada transaksi{isDirector ? ". Mulai catat pemasukan atau pengeluaran pertama." : " pengeluaran."}</p>
+            <p className="text-text-secondary text-sm mb-4">Belum ada transaksi. Mulai catat pemasukan atau pengeluaran pertama.</p>
             <div className="flex justify-center gap-2">
               <Link href="/keuangan/pemasukan" className="text-sm font-medium text-primary hover:underline">+ Tambah Pemasukan</Link>
               <span className="text-text-secondary">·</span>
