@@ -1,5 +1,7 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Lock } from "lucide-react";
 
 function startOfMonth() {
   const d = new Date();
@@ -7,6 +9,23 @@ function startOfMonth() {
 }
 
 export default async function PerformancePage() {
+  const session = await getServerSession(authOptions);
+  const isDirector = session?.user.role === "DIRECTOR";
+
+  if (!isDirector) {
+    return (
+      <div className="max-w-md mx-auto mt-12">
+        <div className="card text-center py-12">
+          <div className="h-12 w-12 rounded-xl bg-primary-light flex items-center justify-center text-primary mx-auto mb-4">
+            <Lock size={22} />
+          </div>
+          <p className="text-text font-medium mb-1">Halaman ini khusus Direktur</p>
+          <p className="text-sm text-text-secondary">Ranking produktivitas karyawan hanya bisa dilihat Direktur.</p>
+        </div>
+      </div>
+    );
+  }
+
   const monthStart = startOfMonth();
 
   const employees = await prisma.employee.findMany({
@@ -26,7 +45,6 @@ export default async function PerformancePage() {
       const attendanceScore = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 0;
       const taskCompletion = assignedTasks > 0 ? Math.round((doneTasks / assignedTasks) * 100) : 0;
 
-      // Overall: average of attendance & task completion; design output shown separately as raw count
       const overall = Math.round((attendanceScore + taskCompletion) / 2);
 
       return {
