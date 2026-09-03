@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import KpiCard from "@/components/KpiCard";
 import ExportButtons from "@/components/ExportButtons";
-import { Wallet, TrendingDown, TrendingUp, Plus, Lock, PiggyBank } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, Plus, Lock, PiggyBank, Pencil } from "lucide-react";
 
 function startOfMonth() {
   const d = new Date();
@@ -123,6 +123,7 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
                   <th className="pb-2 font-medium">Deskripsi</th>
                   <th className="pb-2 font-medium">Diinput oleh</th>
                   <th className="pb-2 font-medium text-right">Nominal</th>
+                  <th className="pb-2 font-medium text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,8 +134,13 @@ export default async function KeuanganPage({ searchParams }: { searchParams: { e
                     <td className="py-2.5">{t.label}</td>
                     <td className="py-2.5 text-text-secondary">{t.desc || "—"}</td>
                     <td className="py-2.5 text-text-secondary">{t.inputBy}</td>
-                    <td className={`py-2.5 text-right font-mono font-semibold ${t.type === "income" ? "text-gain" : "text-loss"}`}>
+                    <td className={`py-2.5 text-right font-medium ${t.type === "income" ? "text-success" : "text-danger"}`}>
                       {t.type === "income" ? "+" : "−"} {fmtRupiah(t.amount)}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary inline-flex">
+                        <Pencil size={14} />
+                      </Link>
                     </td>
                   </tr>
                 ))}

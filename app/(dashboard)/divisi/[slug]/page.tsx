@@ -7,7 +7,7 @@ import { getPeriodRange, Period } from "@/lib/dateRange";
 import KpiCard from "@/components/KpiCard";
 import RevenueChart from "@/components/charts/RevenueChart";
 import ExportButtons from "@/components/ExportButtons";
-import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus, PiggyBank } from "lucide-react";
+import { Wallet, TrendingDown, TrendingUp, Users, ListTodo, Palette, ChevronLeft, Plus, PiggyBank, Pencil } from "lucide-react";
 
 function fmtRupiah(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -132,9 +132,17 @@ export default async function DivisionDetailPage({
                   <p className="text-text">{t.label}</p>
                   <p className="text-xs text-text-secondary">{fmtDate(t.date)}</p>
                 </div>
-                {t.type === "expense" && (
-                  <span className="font-mono font-semibold text-loss">− {fmtRupiah(t.amount)}</span>
-                )}
+                <div className="flex items-center gap-3">
+                  {t.type === "expense" && (
+                    <span className="font-medium text-danger">− {fmtRupiah(t.amount)}</span>
+                  )}
+                  {t.type === "income" && isDirector && (
+                    <span className="font-medium text-success">+ {fmtRupiah(t.amount)}</span>
+                  )}
+                  <Link href={`/keuangan/${t.type === "income" ? "pemasukan" : "pengeluaran"}/${t.id}/edit`} className="text-text-secondary hover:text-primary">
+                    <Pencil size={13} />
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
