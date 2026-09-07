@@ -28,7 +28,7 @@ export default function LoginPage() {
       <section className="flex items-center justify-center p-8 bg-paper">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <Image src="/logo.png" alt="AKSARA" width={140} height={47} className="h-auto w-[140px]" />
+            <Image src="/logo.png" alt="AKSARA" width={140} height={47} className="h-auto w-[140px] brightness-0" />
           </div>
 
           <h1 className="font-display text-2xl font-medium text-text mb-1">Masuk ke akun kamu</h1>
