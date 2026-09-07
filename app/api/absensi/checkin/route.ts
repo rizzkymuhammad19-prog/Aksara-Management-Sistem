@@ -16,15 +16,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lokasi tidak valid." }, { status: 400 });
   }
 
-  const settings = await prisma.setting.findUnique({ where: { id: "default" } });
-  if (!settings?.officeLat || !settings?.officeLng) {
-    return NextResponse.json({ error: "Lokasi kantor belum diatur oleh admin." }, { status: 400 });
+  const [settings, locations] = await Promise.all([
+    prisma.setting.findUnique({ where: { id: "default" } }),
+    prisma.attendanceLocation.findMany({ where: { isActive: true } }),
+  ]);
+
+  if (locations.length === 0) {
+    return NextResponse.json({ error: "Lokasi kantor belum diatur oleh Direktur." }, { status: 400 });
   }
 
-  const distance = distanceMeters(latitude, longitude, settings.officeLat, settings.officeLng);
-  if (distance > settings.radiusM) {
+  // Check distance against every active office location — allowed if within radius of ANY of them
+  let matched: { id: string; name: string } | null = null;
+  let nearestDistance = Infinity;
+
+  for (const loc of locations) {
+    const distance = distanceMeters(latitude, longitude, loc.latitude, loc.longitude);
+    if (distance < nearestDistance) nearestDistance = distance;
+    if (distance <= loc.radiusM) {
+      matched = { id: loc.id, name: loc.name };
+      break;
+    }
+  }
+
+  if (!matched) {
     return NextResponse.json(
-      { error: `Anda berada di luar lokasi kantor (jarak ${Math.round(distance)}m, radius diizinkan ${settings.radiusM}m).` },
+      { error: `Anda berada di luar radius semua lokasi kantor (jarak terdekat ${Math.round(nearestDistance)}m).` },
       { status: 403 }
     );
   }
@@ -38,13 +54,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Anda sudah absen masuk hari ini." }, { status: 400 });
   }
 
-  // Determine Hadir vs Terlambat based on WIB wall-clock time, not server (UTC) time
   const now = new Date();
-  const status = isBeforeJakartaDeadline(settings.clockInTime || "08:00") ? "HADIR" : "TERLAMBAT";
+  const status = isBeforeJakartaDeadline(settings?.clockInTime || "08:00") ? "HADIR" : "TERLAMBAT";
 
   const attendance = await prisma.attendance.upsert({
     where: { employeeId_date: { employeeId: session.user.employeeId, date: today } },
-    update: { checkInAt: now, checkInLat: latitude, checkInLng: longitude, status },
+    update: { checkInAt: now, checkInLat: latitude, checkInLng: longitude, status, locationId: matched.id },
     create: {
       employeeId: session.user.employeeId,
       date: today,
@@ -52,8 +67,9 @@ export async function POST(req: NextRequest) {
       checkInLat: latitude,
       checkInLng: longitude,
       status,
+      locationId: matched.id,
     },
   });
 
-  return NextResponse.json({ success: true, status: attendance.status, distance: Math.round(distance) });
+  return NextResponse.json({ success: true, status: attendance.status, locationName: matched.name });
 }

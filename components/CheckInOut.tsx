@@ -43,7 +43,7 @@ export default function CheckInOut({
           } else {
             setMessage({
               type: "success",
-              text: action === "in" ? `Absen masuk berhasil — status: ${data.status}` : "Absen pulang berhasil.",
+              text: action === "in" ? `Absen masuk berhasil di ${data.locationName} — status: ${data.status}` : "Absen pulang berhasil.",
             });
             router.refresh();
           }

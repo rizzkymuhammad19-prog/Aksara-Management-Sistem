@@ -4,9 +4,8 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CheckInOut from "@/components/CheckInOut";
-import SetOfficeLocation from "@/components/SetOfficeLocation";
 import { jakartaTodayDateOnly, formatJakartaTime, formatJakartaDateLong } from "@/lib/jakarta";
-import { MapPinOff, Lock } from "lucide-react";
+import { MapPinOff, Lock, MapPin } from "lucide-react";
 
 const STATUS_LABEL: Record<string, string> = {
   HADIR: "Hadir",
@@ -23,18 +22,6 @@ const STATUS_COLOR: Record<string, string> = {
   SAKIT: "bg-slate-100 text-text-secondary",
   TIDAK_HADIR: "bg-danger/10 text-danger",
 };
-
-async function saveOfficeLocation(lat: number, lng: number, radius: number, address: string) {
-  "use server";
-  const session = await getServerSession(authOptions);
-  if (session?.user.role !== "DIRECTOR") return;
-
-  await prisma.setting.upsert({
-    where: { id: "default" },
-    update: { officeLat: lat, officeLng: lng, radiusM: radius, officeAddress: address || undefined },
-    create: { id: "default", officeLat: lat, officeLng: lng, radiusM: radius, officeAddress: address },
-  });
-}
 
 async function setManualAttendance(formData: FormData) {
   "use server";
@@ -64,7 +51,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
 
   const today = jakartaTodayDateOnly();
 
-  const settings = await prisma.setting.findUnique({ where: { id: "default" } });
+  const activeLocations = await prisma.attendanceLocation.findMany({ where: { isActive: true } });
 
   let myEmployee = null;
   let myAttendance = null;
@@ -78,7 +65,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
   const todayAll = isDirector
     ? await prisma.attendance.findMany({
         where: { date: today },
-        include: { employee: { include: { user: true, division: true } } },
+        include: { employee: { include: { user: true, division: true } }, location: true },
         orderBy: { checkInAt: "desc" },
       })
     : [];
@@ -119,8 +106,18 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
         </div>
       )}
 
-      {isDirector && (!settings?.officeLat || !settings?.officeLng) && (
-        <SetOfficeLocation saveAction={saveOfficeLocation} />
+      {isDirector && activeLocations.length === 0 && (
+        <div className="rounded-xl bg-warning/10 border border-warning/20 px-4 py-3 text-sm text-warning flex items-center justify-between gap-3 flex-wrap">
+          <span className="flex items-center gap-2"><MapPin size={15} /> Belum ada lokasi kantor yang diatur — karyawan belum bisa absen.</span>
+          <Link href="/settings" className="font-medium underline">Atur di Settings →</Link>
+        </div>
+      )}
+
+      {isDirector && activeLocations.length > 0 && (
+        <div className="rounded-xl bg-primary-light border border-primary/20 px-4 py-3 text-sm text-primary flex items-center justify-between gap-3 flex-wrap">
+          <span className="flex items-center gap-2"><MapPin size={15} /> {activeLocations.length} lokasi kantor aktif: {activeLocations.map((l) => l.name).join(", ")}</span>
+          <Link href="/settings" className="font-medium underline">Kelola →</Link>
+        </div>
       )}
 
       {session?.user.employeeId ? (
@@ -198,6 +195,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
                     <th className="pb-2 font-medium">Nama</th>
                     <th className="pb-2 font-medium">Divisi</th>
                     <th className="pb-2 font-medium">Check In</th>
+                    <th className="pb-2 font-medium">Lokasi</th>
                     <th className="pb-2 font-medium">Check Out</th>
                     <th className="pb-2 font-medium">Status</th>
                   </tr>
@@ -210,6 +208,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
                       <td className="py-2.5 text-text-secondary">
                         {a.checkInAt ? formatJakartaTime(a.checkInAt) : "—"}
                       </td>
+                      <td className="py-2.5 text-text-secondary">{a.location?.name || "—"}</td>
                       <td className="py-2.5 text-text-secondary">
                         {a.checkOutAt ? formatJakartaTime(a.checkOutAt) : "—"}
                       </td>

@@ -16,15 +16,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lokasi tidak valid." }, { status: 400 });
   }
 
-  const settings = await prisma.setting.findUnique({ where: { id: "default" } });
-  if (!settings?.officeLat || !settings?.officeLng) {
-    return NextResponse.json({ error: "Lokasi kantor belum diatur oleh admin." }, { status: 400 });
+  const locations = await prisma.attendanceLocation.findMany({ where: { isActive: true } });
+  if (locations.length === 0) {
+    return NextResponse.json({ error: "Lokasi kantor belum diatur oleh Direktur." }, { status: 400 });
   }
 
-  const distance = distanceMeters(latitude, longitude, settings.officeLat, settings.officeLng);
-  if (distance > settings.radiusM) {
+  let withinAnyRadius = false;
+  let nearestDistance = Infinity;
+  for (const loc of locations) {
+    const distance = distanceMeters(latitude, longitude, loc.latitude, loc.longitude);
+    if (distance < nearestDistance) nearestDistance = distance;
+    if (distance <= loc.radiusM) {
+      withinAnyRadius = true;
+      break;
+    }
+  }
+
+  if (!withinAnyRadius) {
     return NextResponse.json(
-      { error: `Anda berada di luar lokasi kantor (jarak ${Math.round(distance)}m).` },
+      { error: `Anda berada di luar radius semua lokasi kantor (jarak terdekat ${Math.round(nearestDistance)}m).` },
       { status: 403 }
     );
   }

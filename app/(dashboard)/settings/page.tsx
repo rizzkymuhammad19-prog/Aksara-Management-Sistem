@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Settings as SettingsIcon, Lock, Trash2 } from "lucide-react";
+import AddLocationForm from "@/components/AddLocationForm";
+import { Settings as SettingsIcon, Lock, Trash2, MapPin } from "lucide-react";
 
 const DAYS = [
   { key: "Mon", label: "Senin" },
@@ -13,6 +14,36 @@ const DAYS = [
   { key: "Sat", label: "Sabtu" },
   { key: "Sun", label: "Minggu" },
 ];
+
+async function addLocation(name: string, lat: number, lng: number, radius: number) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") return;
+
+  await prisma.attendanceLocation.create({
+    data: { name, latitude: lat, longitude: lng, radiusM: radius },
+  });
+}
+
+async function deleteLocation(formData: FormData) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
+
+  await prisma.attendanceLocation.delete({ where: { id: formData.get("id") as string } });
+  redirect("/settings");
+}
+
+async function toggleLocation(formData: FormData) {
+  "use server";
+  const session = await getServerSession(authOptions);
+  if (session?.user.role !== "DIRECTOR") redirect("/settings?error=forbidden");
+
+  const id = formData.get("id") as string;
+  const loc = await prisma.attendanceLocation.findUnique({ where: { id } });
+  await prisma.attendanceLocation.update({ where: { id }, data: { isActive: !loc?.isActive } });
+  redirect("/settings");
+}
 
 async function updateSettings(formData: FormData) {
   "use server";
@@ -118,6 +149,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
   const settings = await prisma.setting.findUnique({ where: { id: "default" } });
   const holidays = await prisma.holiday.findMany({ orderBy: { date: "asc" } });
   const divisions = await prisma.division.findMany({ orderBy: { name: "asc" } });
+  const attendanceLocations = await prisma.attendanceLocation.findMany({ orderBy: { name: "asc" } });
   const expenseCategories = await prisma.financialCategory.findMany({ where: { type: "EXPENSE" }, orderBy: { name: "asc" } });
   const incomeCategories = await prisma.financialCategory.findMany({ where: { type: "INCOME" }, orderBy: { name: "asc" } });
   const activeDays = (settings?.workDays || "Mon,Tue,Wed,Thu,Fri").split(",");
@@ -185,14 +217,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-text mb-1.5">Radius Absensi (meter)</label>
-            <input type="number" name="radiusM" defaultValue={settings?.radiusM || 100} min="10" required className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            <p className="text-xs text-text-secondary mt-1">
-              {settings?.officeLat ? "Titik kantor sudah diatur. Untuk ubah titik lokasi, buka halaman Absensi." : "Titik lokasi kantor belum diatur — atur dari halaman Absensi."}
-            </p>
-          </div>
-
           <button type="submit" className="w-full rounded-xl bg-ink hover:bg-ink-soft transition-colors text-white font-medium py-2.5 text-sm">
             Simpan Pengaturan
           </button>
@@ -243,6 +267,47 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
             ))}
             {divisions.length === 0 && <p className="text-sm text-text-secondary">Belum ada divisi.</p>}
           </div>
+        </div>
+      )}
+
+      {isDirector && (
+        <div className="card space-y-4">
+          <div>
+            <p className="font-display font-medium text-text mb-1 flex items-center gap-1.5">
+              <MapPin size={16} className="text-primary" /> Lokasi Absensi (Multi-Kantor)
+            </p>
+            <p className="text-xs text-text-secondary">Karyawan bisa absen dari salah satu lokasi ini. Tambahkan setiap kantor/cabang di sini.</p>
+          </div>
+
+          <div className="space-y-2">
+            {attendanceLocations.map((loc) => (
+              <div key={loc.id} className="flex items-center justify-between border-b border-slate-50 last:border-0 pb-2.5 last:pb-0">
+                <div>
+                  <p className="text-sm font-medium text-text">{loc.name}</p>
+                  <p className="text-xs text-text-secondary">
+                    Radius {loc.radiusM}m · {loc.isActive ? "Aktif" : "Nonaktif"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <form action={toggleLocation}>
+                    <input type="hidden" name="id" value={loc.id} />
+                    <button className={`text-xs font-medium px-2.5 py-1 rounded-full ${loc.isActive ? "bg-primary-light text-primary" : "bg-slate-100 text-text-secondary"}`}>
+                      {loc.isActive ? "Aktif" : "Nonaktif"}
+                    </button>
+                  </form>
+                  <form action={deleteLocation}>
+                    <input type="hidden" name="id" value={loc.id} />
+                    <button className="text-text-secondary hover:text-danger">
+                      <Trash2 size={14} />
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+            {attendanceLocations.length === 0 && <p className="text-sm text-text-secondary">Belum ada lokasi absensi.</p>}
+          </div>
+
+          <AddLocationForm addAction={addLocation} />
         </div>
       )}
 
