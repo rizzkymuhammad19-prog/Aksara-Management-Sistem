@@ -4,11 +4,10 @@ import { redirect, notFound } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatJakartaTime } from "@/lib/jakarta";
-import { ChevronLeft, Lock, CheckCheck } from "lucide-react";
+import { ChevronLeft, Lock } from "lucide-react";
 
 const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const DAY_NAMES_ID = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-const DAY_KEY_MAP = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_LABEL: Record<string, string> = {
   HADIR: "Hadir",
@@ -33,7 +32,7 @@ async function correctDay(formData: FormData) {
   if (session?.user.role !== "DIRECTOR") redirect("/absensi?error=forbidden");
 
   const employeeId = formData.get("employeeId") as string;
-  const dateStr = formData.get("date") as string;
+  const dateStr = formData.get("date") as string; // YYYY-MM-DD
   const status = formData.get("status") as string;
   const year = formData.get("year") as string;
   const month = formData.get("month") as string;
@@ -45,50 +44,6 @@ async function correctDay(formData: FormData) {
     update: { status: status as any, note: `Dikoreksi oleh ${session.user.name}` },
     create: { employeeId, date, status: status as any, note: `Dikoreksi oleh ${session.user.name}` },
   });
-
-  redirect(`/absensi/laporan-bulanan/${employeeId}?year=${year}&month=${month}`);
-}
-
-async function markAllPresent(formData: FormData) {
-  "use server";
-
-  const session = await getServerSession(authOptions);
-  if (session?.user.role !== "DIRECTOR") redirect("/absensi?error=forbidden");
-
-  const employeeId = formData.get("employeeId") as string;
-  const year = Number(formData.get("year"));
-  const month = Number(formData.get("month"));
-
-  const settings = await prisma.setting.findUnique({ where: { id: "default" } });
-  const workDays = (settings?.workDays || "Mon,Tue,Wed,Thu,Fri").split(",");
-  const holidays = await prisma.holiday.findMany();
-  const holidayKeys = new Set(
-    holidays.map((h) => `${h.date.getUTCFullYear()}-${String(h.date.getUTCMonth() + 1).padStart(2, "0")}-${String(h.date.getUTCDate()).padStart(2, "0")}`)
-  );
-
-  const nowJakarta = new Date();
-  const isCurrentMonth = year === nowJakarta.getUTCFullYear() && month === nowJakarta.getUTCMonth() + 1;
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const lastDay = isCurrentMonth ? Math.min(nowJakarta.getUTCDate(), daysInMonth) : daysInMonth;
-
-  const updates = [];
-  for (let d = 1; d <= lastDay; d++) {
-    const date = new Date(Date.UTC(year, month - 1, d));
-    const dayName = DAY_KEY_MAP[date.getUTCDay()];
-    const key = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    if (!workDays.includes(dayName)) continue;
-    if (holidayKeys.has(key)) continue;
-
-    updates.push(
-      prisma.attendance.upsert({
-        where: { employeeId_date: { employeeId, date } },
-        update: { status: "HADIR", note: `Ditandai hadir penuh oleh ${session.user.name}` },
-        create: { employeeId, date, status: "HADIR", note: `Ditandai hadir penuh oleh ${session.user.name}` },
-      })
-    );
-  }
-
-  await prisma.$transaction(updates);
 
   redirect(`/absensi/laporan-bulanan/${employeeId}?year=${year}&month=${month}`);
 }
@@ -153,28 +108,13 @@ export default async function EmployeeMonthlyAttendancePage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <Link href={`/absensi/laporan-bulanan?year=${year}&month=${month}`} className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
-            <ChevronLeft size={16} /> Rekap Absensi Bulanan
-          </Link>
-          <h1 className="font-display text-xl font-medium text-text">{employee.user.name}</h1>
-          <p className="text-sm text-text-secondary">{employee.division.name} · {MONTH_NAMES[month - 1]} {year}</p>
-        </div>
-
-        <form action={markAllPresent}>
-          <input type="hidden" name="employeeId" value={employee.id} />
-          <input type="hidden" name="year" value={year} />
-          <input type="hidden" name="month" value={month} />
-          <button type="submit" className="inline-flex items-center gap-1.5 text-sm font-medium bg-ink text-white px-4 py-2 rounded-xl hover:bg-ink-soft transition-colors">
-            <CheckCheck size={16} /> Tandai Semua Hadir
-          </button>
-        </form>
+      <div>
+        <Link href={`/absensi/laporan-bulanan?year=${year}&month=${month}`} className="text-sm text-text-secondary hover:text-primary inline-flex items-center gap-1 mb-2">
+          <ChevronLeft size={16} /> Rekap Absensi Bulanan
+        </Link>
+        <h1 className="font-display text-xl font-medium text-text">{employee.user.name}</h1>
+        <p className="text-sm text-text-secondary">{employee.division.name} · {MONTH_NAMES[month - 1]} {year}</p>
       </div>
-
-      <p className="text-xs text-text-secondary -mt-3">
-        Tombol di atas menandai semua hari kerja bulan ini jadi "Hadir" sekaligus — cocok kalau karyawan ini masuk penuh sebulan. Setelah itu kamu tetap bisa koreksi hari tertentu satu-satu di bawah kalau perlu.
-      </p>
 
       <div className="card">
         <div className="space-y-1.5">
