@@ -16,20 +16,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Lokasi tidak valid." }, { status: 400 });
   }
 
-  const [settings, locations] = await Promise.all([
+  const [settings, employee] = await Promise.all([
     prisma.setting.findUnique({ where: { id: "default" } }),
-    prisma.attendanceLocation.findMany({ where: { isActive: true } }),
+    prisma.employee.findUnique({ where: { id: session.user.employeeId }, include: { assignedLocation: true } }),
   ]);
 
-  if (locations.length === 0) {
+  // If this employee is assigned to a specific office, only that one counts.
+  // Otherwise, any active location works.
+  const candidateLocations = employee?.assignedLocation
+    ? [employee.assignedLocation]
+    : await prisma.attendanceLocation.findMany({ where: { isActive: true } });
+
+  if (candidateLocations.length === 0) {
     return NextResponse.json({ error: "Lokasi kantor belum diatur oleh Direktur." }, { status: 400 });
   }
 
-  // Check distance against every active office location — allowed if within radius of ANY of them
   let matched: { id: string; name: string } | null = null;
   let nearestDistance = Infinity;
 
-  for (const loc of locations) {
+  for (const loc of candidateLocations) {
     const distance = distanceMeters(latitude, longitude, loc.latitude, loc.longitude);
     if (distance < nearestDistance) nearestDistance = distance;
     if (distance <= loc.radiusM) {
@@ -39,8 +44,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (!matched) {
+    const scope = employee?.assignedLocation ? `di ${employee.assignedLocation.name}` : "di semua lokasi kantor";
     return NextResponse.json(
-      { error: `Anda berada di luar radius semua lokasi kantor (jarak terdekat ${Math.round(nearestDistance)}m).` },
+      { error: `Anda berada di luar radius ${scope} (jarak terdekat ${Math.round(nearestDistance)}m).` },
       { status: 403 }
     );
   }

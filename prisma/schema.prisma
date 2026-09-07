@@ -116,6 +116,8 @@ model Employee {
   position            String
   isDesigner          Boolean  @default(false)
   requiresAttendance  Boolean  @default(true)
+  assignedLocationId  String?
+  assignedLocation    AttendanceLocation? @relation(fields: [assignedLocationId], references: [id])
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -144,6 +146,7 @@ model AttendanceLocation {
   isActive  Boolean @default(true)
 
   attendances Attendance[]
+  assignedEmployees Employee[]
 
   @@map("attendance_locations")
 }

@@ -72,7 +72,6 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
 
   const manualEmployees = isDirector
     ? await prisma.employee.findMany({
-        where: { requiresAttendance: false },
         include: { user: true, division: true },
         orderBy: { user: { name: "asc" } },
       })
@@ -144,8 +143,10 @@ export default async function AbsensiPage({ searchParams }: { searchParams: { er
 
       {isDirector && manualEmployees.length > 0 && (
         <div className="card">
-          <p className="font-display font-medium text-text mb-1">Absensi Manual</p>
-          <p className="text-xs text-text-secondary mb-4">Karyawan yang tidak wajib absen GPS — input kehadirannya untuk hari ini di sini.</p>
+          <p className="font-display font-medium text-text mb-1">Koreksi / Input Absensi Manual</p>
+          <p className="text-xs text-text-secondary mb-4">
+            Buat semua karyawan — bisa dipakai untuk karyawan yang tidak wajib GPS, atau membetulkan status karyawan yang lupa check-in padahal sudah masuk kantor.
+          </p>
 
           <div className="space-y-3">
             {manualEmployees.map((emp) => {

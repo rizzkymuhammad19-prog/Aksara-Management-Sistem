@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Users, Plus, Trash2, Power } from "lucide-react";
+import { Users, Plus, Trash2, Power, MapPin, MapPinOff } from "lucide-react";
 
 async function employeeAction(formData: FormData) {
   "use server";
@@ -13,6 +13,18 @@ async function employeeAction(formData: FormData) {
   if (intent === "toggle-active") {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     await prisma.user.update({ where: { id: userId }, data: { isActive: !user?.isActive } });
+    redirect("/karyawan");
+  }
+
+  if (intent === "toggle-attendance") {
+    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+    await prisma.employee.update({ where: { id: employeeId }, data: { requiresAttendance: !employee?.requiresAttendance } });
+    redirect("/karyawan");
+  }
+
+  if (intent === "set-location") {
+    const locationId = (formData.get("locationId") as string) || null;
+    await prisma.employee.update({ where: { id: employeeId }, data: { assignedLocationId: locationId } });
     redirect("/karyawan");
   }
 
@@ -36,10 +48,13 @@ async function employeeAction(formData: FormData) {
 }
 
 export default async function KaryawanPage({ searchParams }: { searchParams: { error?: string } }) {
-  const employees = await prisma.employee.findMany({
-    include: { user: true, division: true },
-    orderBy: { user: { name: "asc" } },
-  });
+  const [employees, locations] = await Promise.all([
+    prisma.employee.findMany({
+      include: { user: true, division: true, assignedLocation: true },
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.attendanceLocation.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -85,12 +100,35 @@ export default async function KaryawanPage({ searchParams }: { searchParams: { e
                     {emp.user.isActive ? "Aktif" : "Nonaktif"}
                   </span>
                 </div>
-                <p className="text-xs text-text-secondary mb-3">{emp.user.email}</p>
-                <form action={employeeAction} className="flex gap-2">
+                <p className="text-xs text-text-secondary mb-1">{emp.user.email}</p>
+                <p className="text-xs mb-3 flex items-center gap-1">
+                  {emp.requiresAttendance ? (
+                    <span className="text-primary flex items-center gap-1"><MapPin size={12} /> Wajib absen GPS</span>
+                  ) : (
+                    <span className="text-warning flex items-center gap-1"><MapPinOff size={12} /> Absensi manual</span>
+                  )}
+                </p>
+                {emp.requiresAttendance && (
+                  <form action={employeeAction} className="flex gap-2 mb-2">
+                    <input type="hidden" name="employeeId" value={emp.id} />
+                    <input type="hidden" name="intent" value="set-location" />
+                    <select name="locationId" defaultValue={emp.assignedLocationId || ""} className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Semua lokasi</option>
+                      {locations.map((l) => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                    <button type="submit" className="text-xs font-medium bg-slate-100 text-text px-2.5 py-1.5 rounded-lg">Set</button>
+                  </form>
+                )}
+                <form action={employeeAction} className="flex gap-2 flex-wrap">
                   <input type="hidden" name="employeeId" value={emp.id} />
                   <input type="hidden" name="userId" value={emp.userId} />
                   <button name="intent" value="toggle-active" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-slate-100 text-text px-3 py-2 rounded-lg">
                     <Power size={14} /> {emp.user.isActive ? "Nonaktifkan" : "Aktifkan"}
+                  </button>
+                  <button name="intent" value="toggle-attendance" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-slate-100 text-text px-3 py-2 rounded-lg">
+                    {emp.requiresAttendance ? <MapPinOff size={14} /> : <MapPin size={14} />} {emp.requiresAttendance ? "Set Manual" : "Set GPS"}
                   </button>
                   <button name="intent" value="delete" className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-danger/10 text-danger px-3 py-2 rounded-lg">
                     <Trash2 size={14} /> Hapus
@@ -109,7 +147,8 @@ export default async function KaryawanPage({ searchParams }: { searchParams: { e
                     <th className="pb-2 font-medium">Nama</th>
                     <th className="pb-2 font-medium">Divisi</th>
                     <th className="pb-2 font-medium">Jabatan</th>
-                    <th className="pb-2 font-medium">Email</th>
+                    <th className="pb-2 font-medium">Absensi</th>
+                    <th className="pb-2 font-medium">Lokasi</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium text-right">Aksi</th>
                   </tr>
@@ -120,7 +159,34 @@ export default async function KaryawanPage({ searchParams }: { searchParams: { e
                       <td className="py-2.5 font-medium text-text">{emp.user.name}</td>
                       <td className="py-2.5">{emp.division.name}</td>
                       <td className="py-2.5">{emp.position}{emp.isDesigner ? " · Designer" : ""}</td>
-                      <td className="py-2.5 text-text-secondary">{emp.user.email}</td>
+                      <td className="py-2.5">
+                        {emp.requiresAttendance ? (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-primary-light text-primary inline-flex items-center gap-1">
+                            <MapPin size={11} /> GPS
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-warning/10 text-warning inline-flex items-center gap-1">
+                            <MapPinOff size={11} /> Manual
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5">
+                        {emp.requiresAttendance ? (
+                          <form action={employeeAction} className="flex items-center gap-1.5">
+                            <input type="hidden" name="employeeId" value={emp.id} />
+                            <input type="hidden" name="intent" value="set-location" />
+                            <select name="locationId" defaultValue={emp.assignedLocationId || ""} className="rounded-lg border border-slate-200 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+                              <option value="">Semua lokasi</option>
+                              {locations.map((l) => (
+                                <option key={l.id} value={l.id}>{l.name}</option>
+                              ))}
+                            </select>
+                            <button type="submit" className="text-xs font-medium bg-slate-100 text-text px-2 py-1 rounded-lg">Set</button>
+                          </form>
+                        ) : (
+                          <span className="text-xs text-text-secondary">—</span>
+                        )}
+                      </td>
                       <td className="py-2.5">
                         <span className={`text-xs px-2.5 py-1 rounded-full ${emp.user.isActive ? "bg-primary-light text-primary" : "bg-slate-100 text-text-secondary"}`}>
                           {emp.user.isActive ? "Aktif" : "Nonaktif"}
@@ -130,6 +196,9 @@ export default async function KaryawanPage({ searchParams }: { searchParams: { e
                         <form action={employeeAction} className="flex justify-end gap-2">
                           <input type="hidden" name="employeeId" value={emp.id} />
                           <input type="hidden" name="userId" value={emp.userId} />
+                          <button name="intent" value="toggle-attendance" title={emp.requiresAttendance ? "Ubah ke absensi manual" : "Ubah ke wajib GPS"} className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary">
+                            {emp.requiresAttendance ? <MapPinOff size={16} /> : <MapPin size={16} />}
+                          </button>
                           <button name="intent" value="toggle-active" title="Nonaktifkan/Aktifkan" className="p-1.5 rounded-lg hover:bg-slate-100 text-text-secondary">
                             <Power size={16} />
                           </button>

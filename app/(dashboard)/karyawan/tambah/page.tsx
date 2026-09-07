@@ -15,6 +15,8 @@ async function createEmployee(formData: FormData) {
   const position = formData.get("position") as string;
   const role = formData.get("role") as string;
   const isDesigner = formData.get("isDesigner") === "on";
+  const requiresAttendance = formData.get("requiresAttendance") === "on";
+  const assignedLocationId = (formData.get("assignedLocationId") as string) || null;
 
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -23,14 +25,17 @@ async function createEmployee(formData: FormData) {
   });
 
   await prisma.employee.create({
-    data: { userId: user.id, divisionId, position, isDesigner },
+    data: { userId: user.id, divisionId, position, isDesigner, requiresAttendance, assignedLocationId },
   });
 
   redirect("/karyawan");
 }
 
 export default async function TambahKaryawanPage() {
-  const divisions = await prisma.division.findMany({ orderBy: { name: "asc" } });
+  const [divisions, locations] = await Promise.all([
+    prisma.division.findMany({ orderBy: { name: "asc" } }),
+    prisma.attendanceLocation.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div className="max-w-lg space-y-6">
@@ -95,6 +100,29 @@ export default async function TambahKaryawanPage() {
             <input type="checkbox" name="isDesigner" className="rounded border-slate-300" />
             Karyawan ini seorang Designer
           </label>
+
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-3.5">
+            <label className="flex items-center gap-2 text-sm text-text font-medium">
+              <input type="checkbox" name="requiresAttendance" defaultChecked className="rounded border-slate-300" />
+              Wajib Absen (GPS)
+            </label>
+            <p className="text-xs text-text-secondary mt-1.5 ml-6">
+              Kalau di-uncheck, karyawan ini tidak perlu check-in/check-out GPS — kehadirannya akan diinput manual oleh Direktur dari halaman Absensi.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">Lokasi Absen</label>
+            <select name="assignedLocationId" className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="">Semua lokasi (bebas pilih)</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-text-secondary mt-1">
+              Kalau dipilih salah satu, karyawan ini cuma bisa absen di lokasi itu saja. Biarkan "Semua lokasi" kalau boleh absen di kantor mana pun.
+            </p>
+          </div>
 
           <button type="submit" className="w-full rounded-xl bg-ink hover:bg-ink-soft transition-colors text-white font-medium py-2.5 text-sm">
             Simpan Karyawan
