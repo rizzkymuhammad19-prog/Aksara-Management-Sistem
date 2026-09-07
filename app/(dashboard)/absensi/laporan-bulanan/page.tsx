@@ -136,7 +136,11 @@ export default async function LaporanAbsensiBulananPage({ searchParams }: { sear
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-slate-50 last:border-0">
-                    <td className="py-2.5 font-medium text-text">{r.name}</td>
+                    <td className="py-2.5 font-medium text-text">
+                      <Link href={`/absensi/laporan-bulanan/${r.id}?year=${year}&month=${month}`} className="hover:text-primary hover:underline">
+                        {r.name}
+                      </Link>
+                    </td>
                     <td className="py-2.5 text-text-secondary">{r.division}</td>
                     <td className="py-2.5 text-center text-success font-medium">{r.hadir}</td>
                     <td className="py-2.5 text-center text-warning font-medium">{r.terlambat}</td>
